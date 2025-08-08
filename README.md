@@ -105,19 +105,20 @@ DELETE /tasks/64b5f8a1234567890abcdef0
 ## Screenshots
 
 ### API Testing with Postman
-![API GET Request](screenshots/api-get-tasks.png)
+
+<img width="593" height="344" alt="Initial_tasklist(empty)" src="https://github.com/user-attachments/assets/7b1a8a9f-2b17-429e-9cae-2f6bf352bf3d" />
+
 *GET /tasks endpoint showing all tasks with status filtering*
 
-![API POST Request](screenshots/api-post-task.png)
+<img width="622" height="497" alt="postman testing" src="https://github.com/user-attachments/assets/626c9d99-67dd-453f-a4bf-dcf0a81f861f" />
+
 *POST /tasks endpoint creating a new task*
 
 ### Docker Containers Running
-![Docker Containers](screenshots/docker-containers.png)
-*Both backend and MongoDB containers running successfully*
 
-### Application Logs
-![Request Logging](screenshots/request-logs.png)
-*Custom middleware logging API requests to console and file*
+<img width="959" height="562" alt="docker" src="https://github.com/user-attachments/assets/76a8651c-864f-4361-8e0f-627609dfa06c" />
+
+*Both backend and MongoDB containers running successfully*
 
 ## Taking Screenshots
 
