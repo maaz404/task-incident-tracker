@@ -1,0 +1,37 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: tracker-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: tracker
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - tracker-network
+
+  backend:
+    build: .
+    container_name: tracker-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://root:password@mongodb:27017/tracker?authSource=admin
+    depends_on:
+      - mongodb
+    networks:
+      - tracker-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  tracker-network:
+    driver: bridge
