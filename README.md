@@ -120,20 +120,6 @@ DELETE /tasks/64b5f8a1234567890abcdef0
 
 *Both backend and MongoDB containers running successfully*
 
-## Taking Screenshots
-
-### API Endpoint Output
-
-1. Start the server (local or Docker)
-2. Open browser or Postman to `http://localhost:3000/tasks`
-3. Take screenshot of the JSON response
-
-### Docker Containers
-
-1. Run `docker-compose up` in terminal
-2. Open another terminal and run `docker ps`
-3. Take screenshot showing both containers running
-
 ## Reflection Note
 
 This project demonstrates building a complete REST API backend using modern Node.js practices. Key learning outcomes include:
