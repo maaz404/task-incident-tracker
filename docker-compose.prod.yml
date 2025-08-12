@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Backend API Service (Production)
+  backend:
+    build:
+      context: ./task-incident-tracker-backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: task-tracker-backend-prod
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=${MONGODB_URI}
+      - CORS_ORIGINS=${FRONTEND_URL},${DOMAIN_URL}
+    expose:
+      - "5000"
+    networks:
+      - task-tracker-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/tasks"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Frontend React Service (Production)
+  frontend:
+    build:
+      context: ./task-incident-tracker-frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: task-tracker-frontend-prod
+    restart: always
+    environment:
+      - REACT_APP_API_URL=${BACKEND_URL}
+      - REACT_APP_API_BASE_PATH=/api
+    expose:
+      - "80"
+    networks:
+      - task-tracker-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Nginx Reverse Proxy (Production)
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: task-tracker-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    networks:
+      - task-tracker-network
+    depends_on:
+      - frontend
+      - backend
+
+  # Certbot for SSL certificates
+  certbot:
+    image: certbot/certbot
+    container_name: task-tracker-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - ./nginx/webroot:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email ${SSL_EMAIL} --agree-tos --no-eff-email --staging -d ${DOMAIN_NAME}
+
+networks:
+  task-tracker-network:
+    driver: bridge
+
+volumes:
+  certbot-etc:
+  certbot-var:
