@@ -21,8 +21,8 @@ RUN npm run build
 # Stage 2: Production image with Nginx
 FROM nginx:alpine AS production
 
-# Install curl for health checks
-RUN apk --no-cache add curl
+# Install wget for health checks
+RUN apk --no-cache add wget
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -30,16 +30,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built app from build stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Create non-root user for better security
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S nginx -u 1001
-
-# Set proper permissions
+# Set proper permissions (nginx user already exists in nginx:alpine image)
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /etc/nginx/conf.d
 
-# Use non-root user
+# Use non-root user (nginx user already exists)
 USER nginx
 
 # Expose port 80
