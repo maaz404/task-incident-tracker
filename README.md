@@ -172,6 +172,12 @@ task-incident-tracker/
    docker compose down
    ```
 
+7. **Automated Verification** (Optional):
+   ```bash
+   ./scripts/verify-deployment.sh
+   ```
+   This script automatically checks prerequisites, builds the React app, starts services, and verifies the deployment.
+
 #### Troubleshooting Docker Deployment
 
 **Problem: "Welcome to nginx!" page instead of React app**
