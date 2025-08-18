@@ -138,6 +138,75 @@ task-incident-tracker/
    pm2 save
    ```
 
+### Docker Deployment
+
+1. **Prerequisites**: 
+   - Docker and Docker Compose installed
+   - Stop any system Nginx service to avoid port conflicts: `sudo systemctl stop nginx`
+
+2. **Build React App** (required before starting containers):
+   ```bash
+   cd client
+   npm install
+   npm run build
+   cd ..
+   ```
+
+3. **Start Services**:
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Verify Deployment**:
+   - Visit `http://your-server-ip` to see the React app
+   - API endpoints are available at `http://your-server-ip/api/tasks`
+   - Check service health: `docker compose ps`
+
+5. **View Logs**:
+   ```bash
+   docker compose logs -f
+   ```
+
+6. **Stop Services**:
+   ```bash
+   docker compose down
+   ```
+
+#### Troubleshooting Docker Deployment
+
+**Problem: "Welcome to nginx!" page instead of React app**
+- **Cause**: React build directory doesn't exist or incorrect nginx volume mount
+- **Solution**: 
+  ```bash
+  cd client && npm run build && cd ..
+  docker compose down && docker compose up -d --build
+  ```
+
+**Problem: Port 80 already in use**
+- **Cause**: System nginx or other service using port 80
+- **Solution**: 
+  ```bash
+  sudo systemctl stop nginx
+  sudo lsof -i :80  # Check what's using port 80
+  docker compose down && docker compose up -d
+  ```
+
+**Problem: API requests fail (Error Loading Tasks)**
+- **Cause**: Backend service not running or network issues
+- **Solution**:
+  ```bash
+  docker compose logs backend  # Check backend logs
+  docker compose restart backend
+  ```
+
+**Problem: Orphan containers or network conflicts**
+- **Solution**: Clean up Docker environment
+  ```bash
+  docker compose down -v --remove-orphans
+  docker system prune -f
+  docker compose up -d --build
+  ```
+
 ## Contributing
 
 1. Fork the repository
