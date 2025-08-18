@@ -1,0 +1,22 @@
+{
+  "name": "task-incident-tracker",
+  "version": "1.0.0",
+  "description": "Full-stack Task and Incident Tracking Application",
+  "scripts": {
+    "start": "docker-compose up -d --build",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "clean": "docker-compose down -v --rmi all"
+  },
+  "keywords": [
+    "task-management",
+    "incident-tracking", 
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "docker"
+  ],
+  "author": "Task Tracker Team",
+  "license": "MIT"
+}

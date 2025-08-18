@@ -37,7 +37,6 @@ function App() {
       const data = await taskService.getAllTasks();
       setTasks(data);
     } catch (error) {
-      console.error("Error loading tasks:", error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -67,7 +66,6 @@ function App() {
       setShowForm(false);
       setEditingTask(null);
     } catch (error) {
-      console.error("Error saving task:", error);
       setError(error.message);
     } finally {
       setActionLoading(false);
@@ -82,7 +80,6 @@ function App() {
         await taskService.deleteTask(taskId);
         await loadTasks();
       } catch (error) {
-        console.error("Error deleting task:", error);
         setError(error.message);
       } finally {
         setActionLoading(false);
