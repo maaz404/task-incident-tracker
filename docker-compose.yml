@@ -24,18 +24,20 @@ services:
       retries: 3
       start_period: 40s
 
-  # Backend API
+  # Backend API (Server)
   backend:
     build:
-      context: ./task-incident-tracker-backend
+      context: ./server
       dockerfile: Dockerfile
     container_name: task_tracker_backend
     restart: unless-stopped
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=5000
-      - MONGODB_URI=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongo:27017/${MONGO_DB_NAME:-task_incident_tracker}?authSource=admin
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - MONGODB_URI=mongodb://taskapp:taskapp123@mongo:27017/task_incident_tracker?authSource=task_incident_tracker
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80,http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_change_in_production}
+      - BCRYPT_SALT_ROUNDS=${BCRYPT_SALT_ROUNDS:-12}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     depends_on:
@@ -44,19 +46,21 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/tasks"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
 
-  # Frontend React App
+  # Frontend React App (Client)
   frontend:
     build:
-      context: ./task-incident-tracker-frontend
+      context: ./client
       dockerfile: Dockerfile
     container_name: task_tracker_frontend
     restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
     ports:
       - "${FRONTEND_PORT:-80}:80"
     depends_on:

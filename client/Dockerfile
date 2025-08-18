@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+RUN npm ci --silent
 
 # Copy source code
 COPY . .
@@ -31,19 +31,23 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Create non-root user for better security
-RUN addgroup -g 1001 -S nginx-user && \
-    adduser -S nginx-user -u 1001 -G nginx-user
+RUN addgroup -g 1001 -S nginx && \
+    adduser -S nginx -u 1001
 
 # Set proper permissions
-RUN chown -R nginx-user:nginx-user /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d
+
+# Use non-root user
+USER nginx
 
 # Expose port 80
 EXPOSE 80
 
 # Health check to ensure frontend is serving
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
 # Start Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]

@@ -21,26 +21,30 @@ A simple full-stack web application for managing tasks and incidents, built with
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/maaz404/task-incident-tracker.git
    cd task-incident-tracker
    ```
 
 2. **Setup Backend**
+
    ```bash
    cd server
    npm install
    ```
 
 3. **Setup Frontend**
+
    ```bash
    cd ../client
    npm install
    ```
 
 4. **Environment Configuration**
-   
+
    Create `server/.env`:
+
    ```env
    NODE_ENV=development
    PORT=5000
@@ -49,6 +53,7 @@ A simple full-stack web application for managing tasks and incidents, built with
    ```
 
    Create `client/.env`:
+
    ```env
    REACT_APP_API_URL=http://localhost:5000
    ```
@@ -58,12 +63,14 @@ A simple full-stack web application for managing tasks and incidents, built with
 1. **Start MongoDB** (if using local instance)
 
 2. **Start Backend** (Terminal 1)
+
    ```bash
    cd server
    npm start
    ```
 
 3. **Start Frontend** (Terminal 2)
+
    ```bash
    cd client
    npm start
@@ -97,7 +104,7 @@ task-incident-tracker/
 ## API Endpoints
 
 | Method | Endpoint         | Description     |
-|--------|------------------|-----------------|
+| ------ | ---------------- | --------------- |
 | GET    | `/api/tasks`     | Get all tasks   |
 | GET    | `/api/tasks/:id` | Get task by ID  |
 | POST   | `/api/tasks`     | Create new task |
