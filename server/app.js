@@ -12,23 +12,33 @@ const PORT = process.env.PORT || 5000;
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = (
-      process.env.CORS_ORIGINS || "http://localhost:3000"
-    ).split(",");
-
+    // Allow requests with no origin (mobile apps, curl requests, etc.)
     if (!origin) return callback(null, true);
+    
+    // Get allowed origins from environment or use defaults
+    const allowedOrigins = (
+      process.env.CORS_ORIGINS || 
+      "http://localhost:3000,http://localhost,http://localhost:80,http://localhost:8080"
+    ).split(",");
 
     const trimmedOrigins = allowedOrigins.map((o) => o.trim());
 
-    if (trimmedOrigins.includes(origin)) {
+    // Allow any localhost or IP-based origin for development/production
+    if (
+      origin.startsWith('http://localhost') || 
+      origin.startsWith('http://127.0.0.1') ||
+      origin.match(/^https?:\/\/\d+\.\d+\.\d+\.\d+/) ||
+      trimmedOrigins.includes(origin)
+    ) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 
 app.use(cors(corsOptions));
