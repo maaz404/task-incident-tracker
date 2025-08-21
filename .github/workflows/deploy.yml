@@ -1,0 +1,205 @@
+name: Build, Test, and Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+
+      # Test Backend
+      - name: Install backend dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Run backend tests
+        run: |
+          cd server
+          npm test
+        continue-on-error: false
+
+      # Test Frontend
+      - name: Install frontend dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd client
+          npm run build
+
+      - name: Run frontend tests
+        run: |
+          cd client
+          npm test -- --coverage --watchAll=false
+        continue-on-error: false
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create deployment package
+        run: |
+          # Remove node_modules and other files that shouldn't be deployed
+          find . -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
+          find . -name ".git" -type d -exec rm -rf {} + 2>/dev/null || true
+          find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          # Create a clean deployment archive
+          tar -czf deployment.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='coverage' \
+            --exclude='*.log' \
+            --exclude='.env.local' \
+            --exclude='.DS_Store' \
+            .
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy files to EC2
+        run: |
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            deployment.tar.gz \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
+
+      - name: Deploy on EC2
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          
+          # Set up deployment directory
+          DEPLOY_DIR="~/task-incident-tracker"
+          BACKUP_DIR="~/task-incident-tracker-backup-$(date +%Y%m%d-%H%M%S)"
+          
+          # Backup existing deployment if it exists
+          if [ -d "$DEPLOY_DIR" ]; then
+            echo "Creating backup of existing deployment..."
+            cp -r "$DEPLOY_DIR" "$BACKUP_DIR"
+            
+            # Stop existing containers gracefully
+            cd "$DEPLOY_DIR"
+            docker-compose down || true
+          fi
+          
+          # Create fresh deployment directory
+          rm -rf "$DEPLOY_DIR"
+          mkdir -p "$DEPLOY_DIR"
+          
+          # Extract new deployment
+          cd "$DEPLOY_DIR"
+          tar -xzf ~/deployment.tar.gz
+          
+          # Clean up deployment archive
+          rm ~/deployment.tar.gz
+          
+          # Ensure Docker is running
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          
+          # Add user to docker group if not already added
+          sudo usermod -aG docker $USER || true
+          
+          # Build and start containers
+          echo "Building and starting containers..."
+          docker-compose build --no-cache
+          docker-compose up -d
+          
+          # Wait for containers to be ready
+          echo "Waiting for containers to start..."
+          sleep 30
+          
+          # Check container health
+          docker-compose ps
+          
+          # Show logs for debugging
+          echo "Container logs:"
+          docker-compose logs --tail=50
+          
+          # Cleanup old Docker images to save space
+          docker image prune -f || true
+          
+          # Keep only the 3 most recent backups
+          ls -dt ~/task-incident-tracker-backup-* | tail -n +4 | xargs rm -rf || true
+          
+          echo "Deployment completed successfully!"
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          # Test if the application is responding
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          
+          # Check if containers are running
+          cd ~/task-incident-tracker
+          if docker-compose ps | grep -q "Up"; then
+            echo "✅ Containers are running successfully"
+            
+            # Test API endpoint
+            if curl -f -s http://localhost/api/tasks >/dev/null; then
+              echo "✅ API endpoint is responding"
+            else
+              echo "⚠️  API endpoint test failed, but containers are running"
+            fi
+          else
+            echo "❌ Some containers are not running properly"
+            docker-compose logs --tail=20
+            exit 1
+          fi
+          ENDSSH
+
+      - name: Cleanup SSH
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+          
+  notification:
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "🎉 Deployment to EC2 completed successfully!"
+            echo "Your Task & Incident Tracker is now live at: http://${{ secrets.EC2_HOST }}"
+          elif [ "${{ needs.test.result }}" = "failure" ]; then
+            echo "❌ Tests failed. Deployment was skipped."
+            exit 1
+          else
+            echo "❌ Deployment failed. Please check the logs."
+            exit 1
+          fi
