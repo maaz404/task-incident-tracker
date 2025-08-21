@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+env:
+  # Production configuration
+  REACT_APP_API_URL: http://${{ secrets.EC2_HOST }}/api
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -360,6 +364,33 @@ jobs:
           
           # Clean up deployment archive
           rm ~/deployment.tar.gz
+          
+          # Create production environment file with secrets
+          echo "=== Creating production environment file ==="
+          cat > .env << EOF
+          # Database Settings
+          MONGO_ROOT_USERNAME=${{ secrets.MONGO_ROOT_USERNAME }}
+          MONGO_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
+          MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }}
+          MONGO_PORT=27017
+          
+          # Application Database User
+          MONGO_APP_USERNAME=${{ secrets.MONGO_APP_USERNAME }}
+          MONGO_APP_PASSWORD=${{ secrets.MONGO_APP_PASSWORD }}
+          
+          # Application Settings
+          NODE_ENV=production
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          BCRYPT_SALT_ROUNDS=12
+          
+          # CORS Configuration
+          CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+          
+          # Client Configuration
+          REACT_APP_API_URL=${{ env.REACT_APP_API_URL }}
+          EOF
+          
+          echo "✅ Environment file created with production secrets"
           
           # Ensure Docker is running
           sudo systemctl start docker

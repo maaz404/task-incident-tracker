@@ -1,6 +1,6 @@
 # Task Incident Tracker
 
-A simple full-stack web application for managing tasks and incidents, built with React, Node.js, Express, and MongoDB.
+A secure full-stack web application for managing tasks and incidents, built with React, Node.js, Express, and MongoDB.
 
 ## Features
 
@@ -9,6 +9,19 @@ A simple full-stack web application for managing tasks and incidents, built with
 - ✅ Real-time updates and filtering
 - ✅ Responsive design
 - ✅ RESTful API
+- 🔐 Secure environment variable management
+- 🚀 Automated CI/CD with GitHub Actions
+- 🐳 Docker containerization
+
+## 🔐 Security First
+
+This application implements security best practices:
+- No hardcoded credentials in source code
+- Environment-based configuration
+- Secure MongoDB authentication
+- GitHub Actions secrets management
+
+**⚠️ Important:** Before running locally or deploying, please read the [Security Setup Guide](SECURITY.md).
 
 ## Quick Start
 
@@ -27,23 +40,33 @@ A simple full-stack web application for managing tasks and incidents, built with
    cd task-incident-tracker
    ```
 
-2. **Setup Backend**
+2. **🔐 Setup Environment Variables (Required)**
+
+   **Important:** Set up environment variables before proceeding:
+
+   ```bash
+   # Copy template files
+   cp .env.template .env
+   cp server/.env.template server/.env  
+   cp client/.env.template client/.env
+   
+   # Edit the files with your secure values
+   # See SECURITY.md for detailed instructions
+   ```
+
+3. **Setup Backend**
 
    ```bash
    cd server
    npm install
    ```
 
-3. **Setup Frontend**
+4. **Setup Frontend**
 
    ```bash
    cd ../client
    npm install
    ```
-
-4. **Environment Configuration**
-
-   Create `server/.env`:
 
    ```env
    NODE_ENV=development

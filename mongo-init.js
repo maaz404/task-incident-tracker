@@ -1,19 +1,26 @@
 // MongoDB initialization script for Task Incident Tracker
 // This script runs when MongoDB container starts for the first time
 
-console.log("Starting MongoDB initialization...");
+// Get environment variables passed from Docker Compose
+const dbName = process.env.MONGO_INITDB_DATABASE || 'task_incident_tracker';
+const appUsername = process.env.MONGO_APP_USERNAME || 'taskapp';
+const appPassword = process.env.MONGO_APP_PASSWORD;
 
-// Switch to the task tracker database
-db = db.getSiblingDB("task_incident_tracker");
+console.log("Starting MongoDB initialization...");
+console.log("Database:", dbName);
+console.log("Creating application user:", appUsername);
+
+// Switch to the application database
+db = db.getSiblingDB(dbName);
 
 // Create application user with read/write permissions
 db.createUser({
-  user: "taskapp",
-  pwd: "taskapp123",
+  user: appUsername,
+  pwd: appPassword,
   roles: [
     {
       role: "readWrite",
-      db: "task_incident_tracker",
+      db: dbName,
     },
   ],
 });
