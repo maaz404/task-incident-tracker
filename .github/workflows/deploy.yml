@@ -125,35 +125,164 @@ jobs:
 
       - name: Configure SSH
         run: |
-          # Create SSH directory with proper permissions
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
+          set -e  # Exit immediately if any command fails
+          set -x  # Print commands as they're executed (for debugging)
+          
+          echo "=== SSH Configuration Starting ==="
+          echo "Runner OS: $RUNNER_OS"
+          echo "Home directory: $HOME"
+          echo "Current user: $(whoami)"
+          
+          # Validate required secrets
+          if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
+            echo "ERROR: EC2_SSH_KEY secret is not set or empty"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "ERROR: EC2_HOST secret is not set or empty" 
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.EC2_USERNAME }}" ]; then
+            echo "ERROR: EC2_USERNAME secret is not set or empty"
+            exit 1
+          fi
+          
+          echo "All required secrets are present"
+          
+          # Create SSH directory with proper error handling
+          echo "=== Creating SSH Directory ==="
+          SSH_DIR="$HOME/.ssh"
+          
+          if ! mkdir -p "$SSH_DIR" 2>/dev/null; then
+            echo "ERROR: Failed to create SSH directory: $SSH_DIR"
+            echo "Directory permissions:"
+            ls -la "$HOME" || echo "Cannot list home directory"
+            exit 1
+          fi
+          
+          # Set SSH directory permissions
+          if ! chmod 700 "$SSH_DIR" 2>/dev/null; then
+            echo "ERROR: Failed to set permissions on SSH directory"
+            ls -la "$SSH_DIR" || echo "Cannot list SSH directory"
+            exit 1
+          fi
+          
+          echo "SSH directory created successfully: $SSH_DIR"
           
           # Create SSH private key file
-          echo "${{ secrets.EC2_SSH_KEY }}" > "$HOME/.ssh/id_rsa"
-          chmod 600 "$HOME/.ssh/id_rsa"
+          echo "=== Creating SSH Private Key ==="
+          SSH_KEY_FILE="$SSH_DIR/id_rsa"
           
-          # Add EC2 host to known_hosts to avoid host verification prompts
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> "$HOME/.ssh/known_hosts"
-          chmod 644 "$HOME/.ssh/known_hosts"
+          # Write SSH key to file
+          if ! echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_KEY_FILE" 2>/dev/null; then
+            echo "ERROR: Failed to write SSH key to file: $SSH_KEY_FILE"
+            exit 1
+          fi
           
-          # Verify SSH setup
+          # Set SSH key permissions
+          if ! chmod 600 "$SSH_KEY_FILE" 2>/dev/null; then
+            echo "ERROR: Failed to set permissions on SSH key file"
+            ls -la "$SSH_KEY_FILE" || echo "Cannot list SSH key file"
+            exit 1
+          fi
+          
+          # Verify SSH key file was created
+          if [ ! -f "$SSH_KEY_FILE" ]; then
+            echo "ERROR: SSH key file was not created: $SSH_KEY_FILE"
+            exit 1
+          fi
+          
+          # Check SSH key file size
+          KEY_SIZE=$(stat -c%s "$SSH_KEY_FILE" 2>/dev/null || echo "0")
+          if [ "$KEY_SIZE" -lt 100 ]; then
+            echo "ERROR: SSH key file seems too small ($KEY_SIZE bytes)"
+            echo "First line of key file:"
+            head -n1 "$SSH_KEY_FILE" || echo "Cannot read key file"
+            exit 1
+          fi
+          
+          echo "SSH key file created successfully ($KEY_SIZE bytes)"
+          
+          # Validate SSH key format
+          KEY_HEADER=$(head -n1 "$SSH_KEY_FILE" 2>/dev/null || echo "")
+          if [[ "$KEY_HEADER" != *"BEGIN"* ]]; then
+            echo "WARNING: SSH key might not be in PEM format"
+            echo "Key header: $KEY_HEADER"
+          else
+            echo "SSH key format appears correct"
+          fi
+          
+          # Add EC2 host to known_hosts
+          echo "=== Adding Host to known_hosts ==="
+          KNOWN_HOSTS_FILE="$SSH_DIR/known_hosts"
+          
+          if ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> "$KNOWN_HOSTS_FILE" 2>/dev/null; then
+            chmod 644 "$KNOWN_HOSTS_FILE" 2>/dev/null || echo "WARNING: Could not set known_hosts permissions"
+            echo "Host added to known_hosts successfully"
+          else
+            echo "WARNING: Failed to add host to known_hosts (will use StrictHostKeyChecking=no)"
+          fi
+          
+          # Final verification
+          echo "=== Final SSH Setup Verification ==="
           echo "SSH directory contents:"
-          ls -la "$HOME/.ssh/"
+          ls -la "$SSH_DIR/"
           
-          # Verify SSH key format (should start with -----BEGIN)
-          echo "SSH key header:"
-          head -1 "$HOME/.ssh/id_rsa"
+          echo "SSH directory permissions:"
+          stat -c "%a %n" "$SSH_DIR" 2>/dev/null || ls -ld "$SSH_DIR"
+          
+          echo "SSH key permissions:" 
+          stat -c "%a %n" "$SSH_KEY_FILE" 2>/dev/null || ls -l "$SSH_KEY_FILE"
+          
+          # Test SSH key with ssh-keygen if available
+          if command -v ssh-keygen >/dev/null 2>&1; then
+            echo "=== SSH Key Validation ==="
+            if ssh-keygen -l -f "$SSH_KEY_FILE" 2>/dev/null; then
+              echo "SSH key validation successful"
+            else
+              echo "WARNING: SSH key validation failed - authentication may fail"
+            fi
+          fi
+          
+          echo "=== SSH Configuration Completed Successfully ==="
 
       - name: Copy files to EC2
         run: |
-          scp -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no \
+          echo "=== Copying deployment files to EC2 ==="
+          
+          # Verify SSH key exists before attempting SCP
+          if [ ! -f "$HOME/.ssh/id_rsa" ]; then
+            echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
+            exit 1
+          fi
+          
+          # Copy deployment package to EC2
+          echo "Copying deployment.tar.gz to EC2 instance..."
+          if ! scp -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             deployment.tar.gz \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/; then
+            echo "ERROR: Failed to copy files to EC2"
+            echo "Checking SSH key permissions:"
+            ls -la "$HOME/.ssh/id_rsa"
+            exit 1
+          fi
+          
+          echo "Files copied to EC2 successfully"
 
       - name: Deploy on EC2
         run: |
-          ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no \
+          echo "=== Deploying to EC2 ==="
+          
+          # Verify SSH key exists before attempting SSH
+          if [ ! -f "$HOME/.ssh/id_rsa" ]; then
+            echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
+            exit 1
+          fi
+          
+          # Connect to EC2 and deploy
+          ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
           
           # Set up deployment directory
@@ -215,9 +344,17 @@ jobs:
 
       - name: Verify deployment
         run: |
+          echo "=== Verifying deployment ==="
           sleep 10
+          
+          # Verify SSH key exists before attempting SSH
+          if [ ! -f "$HOME/.ssh/id_rsa" ]; then
+            echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
+            exit 1
+          fi
+          
           # Test if the application is responding
-          ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no \
+          ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
           
           # Check if containers are running
@@ -241,11 +378,23 @@ jobs:
       - name: Cleanup SSH
         if: always()
         run: |
-          # Clean up SSH key file for security
-          rm -f "$HOME/.ssh/id_rsa"
+          echo "=== Cleaning up SSH configuration ==="
           
-          # Optionally clean up known_hosts entry (uncomment if needed)
-          # sed -i "/${{ secrets.EC2_HOST }}/d" "$HOME/.ssh/known_hosts" 2>/dev/null || true
+          # Clean up SSH key file for security
+          if [ -f "$HOME/.ssh/id_rsa" ]; then
+            rm -f "$HOME/.ssh/id_rsa"
+            echo "SSH private key removed"
+          else
+            echo "SSH private key not found (already cleaned up)"
+          fi
+          
+          # Optionally clean up known_hosts entry
+          if [ -f "$HOME/.ssh/known_hosts" ]; then
+            sed -i "/${{ secrets.EC2_HOST }}/d" "$HOME/.ssh/known_hosts" 2>/dev/null || true
+            echo "Host entry removed from known_hosts"
+          fi
+          
+          echo "SSH cleanup completed"
           
   notification:
     needs: [test, deploy]
