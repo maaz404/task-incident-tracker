@@ -65,8 +65,18 @@ jobs:
 
       - name: Create deployment package
         run: |
+          # Verify README.md exists before packaging
+          echo "=== Checking for README.md ==="
+          if [ -f "README.md" ]; then
+            echo "✅ README.md found in repository"
+            echo "README.md size: $(wc -c < README.md) bytes"
+            echo "README.md last modified: $(stat -c %y README.md)"
+          else
+            echo "❌ README.md not found in repository"
+          fi
+          
           # List files to be included (for debugging)
-          echo "Files to be packaged:"
+          echo "=== Files to be packaged ==="
           find . -type f \
             ! -path "./node_modules/*" \
             ! -path "./.git/*" \
@@ -84,6 +94,22 @@ jobs:
             ! -name "*.temp" \
             ! -name ".eslintcache" \
             ! -name "junit.xml" | head -20
+            
+          # Specifically check if README.md will be included
+          echo "=== Checking if README.md will be included ==="
+          if find . -name "README.md" -type f \
+            ! -path "./node_modules/*" \
+            ! -path "./.git/*" \
+            ! -path "./.github/*" \
+            ! -path "./coverage/*" \
+            ! -path "./build/*" \
+            ! -path "./dist/*" \
+            ! -path "./.cache/*" \
+            ! -path "./.nyc_output/*" | grep -q "README.md"; then
+            echo "✅ README.md will be included in deployment package"
+          else
+            echo "❌ README.md will NOT be included in deployment package"
+          fi
             
           # Create deployment archive with comprehensive exclusions
           tar -czf deployment.tar.gz \
@@ -120,6 +146,17 @@ jobs:
           
           # Verify archive was created and show size
           ls -lh deployment.tar.gz
+          
+          # Verify README.md is in the archive
+          echo "=== Verifying README.md in deployment archive ==="
+          if tar -tzf deployment.tar.gz | grep -q "README.md"; then
+            echo "✅ README.md is present in deployment archive"
+          else
+            echo "❌ README.md is missing from deployment archive"
+            echo "Archive contents:"
+            tar -tzf deployment.tar.gz | head -20
+          fi
+          
           echo "Archive contents preview:"
           tar -tzf deployment.tar.gz | head -20
 
@@ -307,6 +344,20 @@ jobs:
           cd "$DEPLOY_DIR"
           tar -xzf ~/deployment.tar.gz
           
+          # Verify README.md was extracted
+          echo "=== Verifying README.md deployment ==="
+          if [ -f "README.md" ]; then
+            echo "✅ README.md successfully deployed to EC2"
+            echo "README.md size: $(wc -c < README.md) bytes"
+            echo "README.md location: $(pwd)/README.md"
+            echo "First few lines of README.md:"
+            head -5 README.md || echo "Cannot read README.md content"
+          else
+            echo "❌ README.md not found after deployment"
+            echo "Current directory contents:"
+            ls -la
+          fi
+          
           # Clean up deployment archive
           rm ~/deployment.tar.gz
           
@@ -359,6 +410,21 @@ jobs:
           
           # Check if containers are running
           cd ~/task-incident-tracker
+          
+          # Final verification that README.md is present
+          echo "=== Final README.md verification ==="
+          if [ -f "README.md" ]; then
+            echo "✅ README.md is present on EC2 after deployment"
+            echo "README.md last modified: $(stat -c %y README.md)"
+            echo "README.md content preview:"
+            head -3 README.md
+          else
+            echo "❌ README.md is missing from EC2 deployment directory"
+            echo "Current directory: $(pwd)"
+            echo "Directory contents:"
+            ls -la
+          fi
+          
           if docker-compose ps | grep -q "Up"; then
             echo "✅ Containers are running successfully"
             
