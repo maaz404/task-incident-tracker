@@ -1,96 +1,127 @@
 const Task = require("../models/Task");
 
-// Get all tasks with optional status filter
+// Get all tasks for the logged-in user
 const getTasks = async (req, res) => {
   try {
     const { status } = req.query;
-    let filter = {};
-
+    const filter = { createdBy: req.user._id };
+    
     if (status) {
       filter.status = status;
     }
 
-    const tasks = await Task.find(filter);
+    const tasks = await Task.find(filter)
+      .populate('createdBy', 'username email')
+      .sort({ createdAt: -1 });
+    
     res.json(tasks);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching tasks", error: error.message });
+    console.error("Error fetching tasks:", error);
+    res.status(500).json({ message: "Failed to fetch tasks" });
   }
 };
 
-// Create a new task
+// Get single task by ID (only if owned by user)
+const getTaskById = async (req, res) => {
+  try {
+    const task = await Task.findOne({ 
+      _id: req.params.id, 
+      createdBy: req.user._id 
+    }).populate('createdBy', 'username email');
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.json(task);
+  } catch (error) {
+    console.error("Error fetching task:", error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+    res.status(500).json({ message: "Failed to fetch task" });
+  }
+};
+
+// Create new task
 const createTask = async (req, res) => {
   try {
-    const { title, description, status } = req.body;
+    const { title, description, status, priority } = req.body;
 
-    // Check if title is provided
+    // Basic validation
     if (!title) {
       return res.status(400).json({ message: "Title is required" });
     }
 
-    const newTask = new Task({
+    const task = new Task({
       title,
       description,
-      status,
+      status: status || 'pending',
+      priority: priority || 'medium',
+      createdBy: req.user._id
     });
 
-    const savedTask = await newTask.save();
-    res.status(201).json(savedTask);
+    const savedTask = await task.save();
+    const populatedTask = await Task.findById(savedTask._id)
+      .populate('createdBy', 'username email');
+
+    res.status(201).json(populatedTask);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error creating task", error: error.message });
+    console.error("Error creating task:", error);
+    res.status(500).json({ message: "Failed to create task" });
   }
 };
 
+// Update task (only if owned by user)
 const updateTask = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, description, status } = req.body;
+    const { title, description, status, priority } = req.body;
 
-    const task = await Task.findById(id);
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user._id },
+      { title, description, status, priority },
+      { new: true, runValidators: true }
+    ).populate('createdBy', 'username email');
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    if (title !== undefined) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (status !== undefined) task.status = status;
-
-    const updatedTask = await task.save();
-    res.json(updatedTask);
+    res.json(task);
   } catch (error) {
-    if (error.name === "CastError") {
+    console.error("Error updating task:", error);
+    if (error.name === 'CastError') {
       return res.status(400).json({ message: "Invalid task ID" });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Failed to update task" });
   }
 };
 
+// Delete task (only if owned by user)
 const deleteTask = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const task = await Task.findById(id);
+    const task = await Task.findOneAndDelete({ 
+      _id: req.params.id, 
+      createdBy: req.user._id 
+    });
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    await Task.findByIdAndDelete(id);
-    res.json({ message: "Task deleted successfully" });
+    res.json({ message: "Task deleted successfully", task });
   } catch (error) {
-    if (error.name === "CastError") {
+    console.error("Error deleting task:", error);
+    if (error.name === 'CastError') {
       return res.status(400).json({ message: "Invalid task ID" });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Failed to delete task" });
   }
 };
 
 module.exports = {
   getTasks,
+  getTaskById,
   createTask,
   updateTask,
   deleteTask,

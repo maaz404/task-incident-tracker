@@ -1,10 +1,30 @@
 const express = require("express");
 const router = express.Router();
-const tasksController = require("../controllers/tasksController");
+const {
+  getTasks,
+  getTaskById,
+  createTask,
+  updateTask,
+  deleteTask,
+} = require("../controllers/tasksController");
+const { authenticateToken } = require("../middleware/auth");
 
-router.get("/", tasksController.getTasks);
-router.post("/", tasksController.createTask);
-router.put("/:id", tasksController.updateTask);
-router.delete("/:id", tasksController.deleteTask);
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
+
+// Get all tasks for the authenticated user
+router.get("/", getTasks);
+
+// Get a single task by ID
+router.get("/:id", getTaskById);
+
+// Create a new task
+router.post("/", createTask);
+
+// Update a task by ID
+router.put("/:id", updateTask);
+
+// Delete a task by ID
+router.delete("/:id", deleteTask);
 
 module.exports = router;

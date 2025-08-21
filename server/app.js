@@ -4,44 +4,14 @@ const cors = require("cors");
 require("dotenv").config();
 
 const tasksRoutes = require("./routes/tasks");
+const authRoutes = require("./routes/auth");
 const requestLogger = require("./middleware/requestLogger");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl requests, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Get allowed origins from environment or use defaults
-    const allowedOrigins = (
-      process.env.CORS_ORIGINS || 
-      "http://localhost:3000,http://localhost,http://localhost:80,http://localhost:8080"
-    ).split(",");
-
-    const trimmedOrigins = allowedOrigins.map((o) => o.trim());
-
-    // Allow any localhost or IP-based origin for development/production
-    if (
-      origin.startsWith('http://localhost') || 
-      origin.startsWith('http://127.0.0.1') ||
-      origin.match(/^https?:\/\/\d+\.\d+\.\d+\.\d+/) ||
-      trimmedOrigins.includes(origin)
-    ) {
-      callback(null, true);
-    } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-};
-
-app.use(cors(corsOptions));
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
@@ -69,12 +39,8 @@ const connectToMongoDB = async () => {
 
   while (retries < maxRetries) {
     try {
-      await mongoose.connect(mongoURI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-      });
+      await mongoose.connect(mongoURI);
+      console.log(`Connected to MongoDB: ${mongoURI}`);
       break;
     } catch (error) {
       retries++;
@@ -94,15 +60,8 @@ const connectToMongoDB = async () => {
 
 connectToMongoDB();
 
-mongoose.connection.on("error", (err) => {
-  console.error("MongoDB connection error:", err);
-});
-
-mongoose.connection.on("disconnected", () => {
-  console.log("MongoDB disconnected");
-});
-
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/tasks", tasksRoutes);
 
 // Health check endpoint
@@ -124,21 +83,32 @@ app.get("/", (req, res) => {
   res.json({
     message: "Task Incident Tracker API",
     endpoints: {
-      health: "/health",
-      tasks: "/api/tasks",
+      auth: {
+        register: "POST /api/auth/register",
+        login: "POST /api/auth/login",
+        profile: "GET /api/auth/me",
+      },
+      tasks: {
+        list: "GET /api/tasks",
+        get: "GET /api/tasks/:id",
+        create: "POST /api/tasks",
+        update: "PUT /api/tasks/:id",
+        delete: "DELETE /api/tasks/:id"
+      }
     },
+    note: "All task endpoints require authentication via Bearer token"
   });
 });
 
-// Error handling middleware
+// Basic error handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
+  console.error('Error:', err.message);
+  res.status(500).json({ message: "Something went wrong!" });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json({ message: "Route not found" });
 });
 
 app.listen(PORT, () => {

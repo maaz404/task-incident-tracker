@@ -3,8 +3,16 @@ import { taskService } from "./services/taskService";
 import TaskList from "./components/TaskList";
 import TaskForm from "./components/TaskForm";
 import StatusFilter from "./components/StatusFilter";
+import LoginForm from "./components/LoginForm";
+import RegisterForm from "./components/RegisterForm";
 
 function App() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showRegister, setShowRegister] = useState(false);
+
+  // Task state
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +21,25 @@ function App() {
   const [editingTask, setEditingTask] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Check authentication on app load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+    
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
+      setIsAuthenticated(true);
+    }
+    setLoading(false);
+  }, []);
+
+  // Load tasks when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadTasks();
+    }
+  }, [isAuthenticated]);
 
   const filterTasks = useCallback(() => {
     if (statusFilter === "All") {
@@ -23,12 +50,38 @@ function App() {
   }, [tasks, statusFilter]);
 
   useEffect(() => {
-    loadTasks();
-  }, []);
-
-  useEffect(() => {
     filterTasks();
   }, [filterTasks]);
+
+  // Authentication handlers
+  const handleLoginSuccess = (userData, token) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    setError(null);
+  };
+
+  const handleRegisterSuccess = (userData, token) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    setError(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthenticated(false);
+    setTasks([]);
+    setFilteredTasks([]);
+  };
+
+  const handleSwitchToRegister = () => {
+    setShowRegister(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setShowRegister(false);
+  };
 
   const loadTasks = async () => {
     try {
@@ -100,12 +153,48 @@ function App() {
     loadTasks();
   };
 
+  // Show loading screen on initial load
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  // Show authentication forms if not logged in
+  if (!isAuthenticated) {
+    if (showRegister) {
+      return (
+        <RegisterForm 
+          onRegisterSuccess={handleRegisterSuccess}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      );
+    } else {
+      return (
+        <LoginForm 
+          onLoginSuccess={handleLoginSuccess}
+          onSwitchToRegister={handleSwitchToRegister}
+        />
+      );
+    }
+  }
+
+  // Error handling for authenticated users
   if (error && !loading) {
     return (
       <div className="container">
         <header className="header">
-          <h1>Task & Incident Tracker</h1>
-          <p>Manage your tasks and track incidents efficiently</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1>Task & Incident Tracker</h1>
+              <p>Welcome, {user?.username}!</p>
+            </div>
+            <button onClick={handleLogout} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
+              Logout
+            </button>
+          </div>
         </header>
 
         <div className="error-container">
@@ -121,11 +210,19 @@ function App() {
     );
   }
 
+  // Main authenticated app
   return (
     <div className="container">
       <header className="header">
-        <h1>Task & Incident Tracker</h1>
-        <p>Manage your tasks and track incidents efficiently</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1>Task & Incident Tracker</h1>
+            <p>Welcome, {user?.username}! Manage your tasks and track incidents efficiently</p>
+          </div>
+          <button onClick={handleLogout} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
+            Logout
+          </button>
+        </div>
       </header>
 
       {error && (

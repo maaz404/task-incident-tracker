@@ -4,24 +4,21 @@ A secure full-stack web application for managing tasks and incidents, built with
 
 ## Features
 
-- ✅ Create, edit, and delete tasks
-- ✅ Status tracking (Open, In Progress, Resolved)
-- ✅ Real-time updates and filtering
-- ✅ Responsive design
-- ✅ RESTful API
-- 🔐 Secure environment variable management
-- 🚀 Automated CI/CD with GitHub Actions
-- 🐳 Docker containerization
+- ✅ **User Authentication**: Simple JWT-based authentication with registration and login
+- ✅ **Secure Task Management**: Create, edit, and delete tasks (user-owned)
+- ✅ **Basic Filtering**: Status tracking, priority levels
+- ✅ **User Profiles**: Profile management
+- ✅ **Simple Security**: JWT token authentication and password hashing
+- ✅ **RESTful API**: Clean API with basic error handling
+- ✅ **Responsive Design**: Works on desktop and mobile devices
 
-## 🔐 Security First
+## 🔐 Security Features
 
-This application implements security best practices:
-- No hardcoded credentials in source code
-- Environment-based configuration
-- Secure MongoDB authentication
-- GitHub Actions secrets management
-
-**⚠️ Important:** Before running locally or deploying, please read the [Security Setup Guide](SECURITY.md).
+- **JWT Authentication**: Secure token-based authentication
+- **Password Security**: Bcrypt hashing for password protection
+- **User Ownership**: Users can only access their own tasks
+- **Input Validation**: Basic request validation
+- **CORS Protection**: Cross-origin resource sharing enabled
 
 ## Quick Start
 
@@ -40,42 +37,84 @@ This application implements security best practices:
    cd task-incident-tracker
    ```
 
-2. **🔐 Setup Environment Variables (Required)**
-
-   **Important:** Set up environment variables before proceeding:
-
-   ```bash
-   # Copy template files
-   cp .env.template .env
-   cp server/.env.template server/.env  
-   cp client/.env.template client/.env
-   
-   # Edit the files with your secure values
-   # See SECURITY.md for detailed instructions
-   ```
-
-3. **Setup Backend**
+2. **Setup Backend**
 
    ```bash
    cd server
    npm install
    ```
 
-4. **Setup Frontend**
+3. **Setup Frontend**
 
    ```bash
    cd ../client
    npm install
    ```
 
+4. **Environment Configuration**
+
+   Create `server/.env`:
+
    ```env
    NODE_ENV=development
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/task_incident_tracker
-   CORS_ORIGIN=http://localhost:3000
+   JWT_SECRET=your_super_secret_jwt_key_change_in_production_at_least_32_characters_long
+   JWT_EXPIRES_IN=7d
+   CORS_ORIGINS=http://localhost:3000
    ```
 
-   Create `client/.env`:
+5. **Start the Application**
+
+   Using Docker (Recommended):
+   ```bash
+   docker-compose up --build
+   ```
+
+   Or manually:
+   ```bash
+   # Terminal 1 - Backend
+   cd server
+   npm run dev
+
+   # Terminal 2 - Frontend  
+   cd client
+   npm start
+   ```
+
+6. **Create Your First User**
+
+   Visit `http://localhost:3000` and register a new account, or use the API directly:
+
+   ```bash
+   curl -X POST http://localhost:5000/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{
+       "username": "admin",
+       "email": "admin@example.com", 
+       "password": "Admin123",
+       "firstName": "Admin",
+       "lastName": "User"
+     }'
+   ```
+
+## 📚 API Documentation
+
+For detailed API documentation including all endpoints, authentication, and examples, see [AUTHENTICATION.md](AUTHENTICATION.md).
+
+### Quick API Reference
+
+**Authentication:**
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get user profile
+- `PUT /api/auth/change-password` - Change password
+
+**Tasks (Protected):**
+- `GET /api/tasks` - Get user's tasks
+- `POST /api/tasks` - Create new task
+- `PUT /api/tasks/:id` - Update task
+- `DELETE /api/tasks/:id` - Delete task
 
    ```env
    REACT_APP_API_URL=http://localhost:5000

@@ -12,6 +12,20 @@ const apiClient = axios.create({
   },
 });
 
+// Add request interceptor to include auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
@@ -20,9 +34,16 @@ apiClient.interceptors.response.use(
 
     if (error.response) {
       // Server responded with error status
-      errorMessage =
-        error.response.data?.message ||
-        `Server error: ${error.response.status}`;
+      if (error.response.status === 401) {
+        // Unauthorized - clear local storage and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        errorMessage = "Session expired. Please log in again.";
+      } else {
+        errorMessage =
+          error.response.data?.message ||
+          `Server error: ${error.response.status}`;
+      }
     } else if (error.request) {
       // Network error
       errorMessage =

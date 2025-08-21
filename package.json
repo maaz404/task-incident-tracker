@@ -6,14 +6,11 @@
     "start": "docker-compose up -d --build",
     "stop": "docker-compose down",
     "logs": "docker-compose logs -f",
-    "clean": "docker-compose down -v --rmi all",
-    "generate-secrets": "node scripts/generate-secrets.js",
-    "security-check": "grep -r --exclude-dir=node_modules --exclude-dir=.git --exclude='*.md' -E '(password|secret|key|token|credential|mongodb://.*:.*@)' . || echo '✅ No secrets found in code'",
-    "setup-env": "echo 'Setting up environment files...' && cp .env.template .env 2>/dev/null || true && cp server/.env.template server/.env 2>/dev/null || true && cp client/.env.template client/.env 2>/dev/null || true && echo '✅ Environment template files copied. Please edit them with your values.'"
+    "clean": "docker-compose down -v --rmi all"
   },
   "keywords": [
     "task-management",
-    "incident-tracking", 
+    "incident-tracking",
     "react",
     "nodejs",
     "express",
