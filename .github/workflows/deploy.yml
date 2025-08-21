@@ -65,20 +65,63 @@ jobs:
 
       - name: Create deployment package
         run: |
-          # Remove node_modules and other files that shouldn't be deployed
-          find . -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
-          find . -name ".git" -type d -exec rm -rf {} + 2>/dev/null || true
-          find . -name "coverage" -type d -exec rm -rf {} + 2>/dev/null || true
-          
-          # Create a clean deployment archive
+          # List files to be included (for debugging)
+          echo "Files to be packaged:"
+          find . -type f \
+            ! -path "./node_modules/*" \
+            ! -path "./.git/*" \
+            ! -path "./.github/*" \
+            ! -path "./coverage/*" \
+            ! -path "./build/*" \
+            ! -path "./dist/*" \
+            ! -path "./.cache/*" \
+            ! -path "./.nyc_output/*" \
+            ! -name "*.log" \
+            ! -name ".env.local" \
+            ! -name ".DS_Store" \
+            ! -name "Thumbs.db" \
+            ! -name "*.tmp" \
+            ! -name "*.temp" \
+            ! -name ".eslintcache" \
+            ! -name "junit.xml" | head -20
+            
+          # Create deployment archive with comprehensive exclusions
           tar -czf deployment.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='coverage' \
+            --warning=no-file-changed \
+            --exclude='./node_modules' \
+            --exclude='./client/node_modules' \
+            --exclude='./server/node_modules' \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            --exclude='./coverage' \
+            --exclude='./client/coverage' \
+            --exclude='./server/coverage' \
+            --exclude='./build' \
+            --exclude='./client/build' \
+            --exclude='./dist' \
+            --exclude='./.cache' \
+            --exclude='./.nyc_output' \
+            --exclude='./.vscode' \
+            --exclude='./.idea' \
+            --exclude-tag-all='.gitignore' \
             --exclude='*.log' \
+            --exclude='*.log.*' \
             --exclude='.env.local' \
+            --exclude='.env.*.local' \
             --exclude='.DS_Store' \
+            --exclude='Thumbs.db' \
+            --exclude='*.tmp' \
+            --exclude='*.temp' \
+            --exclude='.eslintcache' \
+            --exclude='junit.xml' \
+            --exclude='*.tgz' \
+            --exclude='*.tar.gz' \
             .
+          
+          # Verify archive was created and show size
+          ls -lh deployment.tar.gz
+          echo "Archive contents preview:"
+          tar -tzf deployment.tar.gz | head -20
 
       - name: Configure SSH
         run: |
