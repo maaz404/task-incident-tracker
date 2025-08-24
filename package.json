@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Full-stack Task and Incident Tracking Application",
   "scripts": {
-    "start": "docker-compose up -d --build",
-    "stop": "docker-compose down",
-    "logs": "docker-compose logs -f",
-    "clean": "docker-compose down -v --rmi all"
+    "prebuild": "cd client && npm install && npm run build",
+    "start": "npm run prebuild && docker compose up -d --build",
+    "dev": "docker compose up --build",
+    "stop": "docker compose down",
+    "logs": "docker compose logs -f",
+    "clean": "docker compose down -v --remove-orphans && docker system prune -f"
   },
   "keywords": [
     "task-management",
