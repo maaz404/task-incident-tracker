@@ -1,34 +1,32 @@
 const mongoose = require("mongoose");
 
+// Task schema - defines what data we store for each task
 const taskSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
-      trim: true
+      trim: true,
+      default: "",
     },
     status: {
       type: String,
-      enum: ["pending", "in-progress", "completed"],
-      default: "pending"
+      enum: ["Pending", "In Progress", "Complete"],
+      default: "Pending",
     },
-    priority: {
-      type: String,
-      enum: ["low", "medium", "high"],
-      default: "medium"
-    },
-    createdBy: {
+    // Which user created this task
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    }
+      ref: "User",
+      required: true,
+    },
   },
   {
-    timestamps: true,
+    timestamps: true, // Automatically adds createdAt and updatedAt
   }
 );
 

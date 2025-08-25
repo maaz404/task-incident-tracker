@@ -3,116 +3,65 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
-const tasksRoutes = require("./routes/tasks");
 const authRoutes = require("./routes/auth");
-const requestLogger = require("./middleware/requestLogger");
+const tasksRoutes = require("./routes/tasks");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Simple middleware setup
 app.use(cors());
 app.use(express.json());
-app.use(requestLogger);
 
-// MongoDB connection with auto-detection
-const connectToMongoDB = async () => {
-  const dockerURI =
-    process.env.MONGODB_URI_DOCKER ||
-    "mongodb://taskapp:taskapp123@mongo:27017/task_incident_tracker?authSource=task_incident_tracker";
-  const localURI =
-    process.env.MONGODB_URI ||
-    "mongodb://localhost:27017/task_incident_tracker";
-
-  let mongoURI = localURI;
-
+// Simple MongoDB connection
+const connectDB = async () => {
   try {
-    require("dns").lookup("mongo", (err) => {
-      if (!err) mongoURI = dockerURI;
-    });
+    const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/task_tracker";
+    await mongoose.connect(mongoURI);
+    console.log("✅ Connected to MongoDB");
   } catch (error) {
-    // Use local connection as fallback
-  }
-
-  const maxRetries = 3;
-  let retries = 0;
-
-  while (retries < maxRetries) {
-    try {
-      await mongoose.connect(mongoURI);
-      console.log(`Connected to MongoDB: ${mongoURI}`);
-      break;
-    } catch (error) {
-      retries++;
-
-      if (retries < maxRetries) {
-        mongoURI = mongoURI === dockerURI ? localURI : dockerURI;
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } else {
-        console.error(
-          "MongoDB connection failed. Please ensure MongoDB is running."
-        );
-        process.exit(1);
-      }
-    }
+    console.error("❌ MongoDB connection failed:", error.message);
+    process.exit(1);
   }
 };
 
-connectToMongoDB();
+// Connect to database
+connectDB();
 
-// Routes
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", tasksRoutes);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  const healthStatus = {
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    mongodb:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-  };
-
-  res
-    .status(mongoose.connection.readyState === 1 ? 200 : 503)
-    .json(healthStatus);
-});
-
-// Root endpoint
+// Welcome message
 app.get("/", (req, res) => {
   res.json({
-    message: "Task Incident Tracker API",
+    message: "Task Tracker API",
+    version: "1.0.0",
     endpoints: {
-      auth: {
-        register: "POST /api/auth/register",
-        login: "POST /api/auth/login",
-        profile: "GET /api/auth/me",
-      },
-      tasks: {
-        list: "GET /api/tasks",
-        get: "GET /api/tasks/:id",
-        create: "POST /api/tasks",
-        update: "PUT /api/tasks/:id",
-        delete: "DELETE /api/tasks/:id"
-      }
-    },
-    note: "All task endpoints require authentication via Bearer token"
+      "Register": "POST /api/auth/register",
+      "Login": "POST /api/auth/login", 
+      "Get Tasks": "GET /api/tasks",
+      "Create Task": "POST /api/tasks",
+      "Update Task": "PUT /api/tasks/:id",
+      "Delete Task": "DELETE /api/tasks/:id"
+    }
   });
 });
 
-// Basic error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
-  res.status(500).json({ message: "Something went wrong!" });
+// Simple error handler
+app.use((error, req, res, next) => {
+  console.error("Error:", error.message);
+  res.status(500).json({ message: "Server error occurred" });
 });
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+app.use("*", (req, res) => {
+  res.status(404).json({ message: "API route not found" });
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
 module.exports = app;

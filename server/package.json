@@ -1,12 +1,11 @@
 {
-  "name": "task-incident-tracker",
+  "name": "task-tracker-api",
   "version": "1.0.0",
-  "description": "Backend API for Task and Incident Tracker",
+  "description": "Simple Task Tracker API",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"No backend tests specified\" && exit 0"
+    "dev": "nodemon app.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -18,13 +17,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-  },
-  "keywords": [
-    "nodejs",
-    "express",
-    "mongodb",
-    "tracker"
-  ],
-  "author": "",
-  "license": "ISC"
+  }
 }

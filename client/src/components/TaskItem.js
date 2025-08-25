@@ -1,43 +1,39 @@
 import React from "react";
 
-const TaskItem = ({ task, onEdit, onDelete, disabled = false }) => {
-  const getStatusClass = (status) => {
-    return status.toLowerCase().replace(" ", "-");
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString();
+const TaskItem = ({ task, onEdit, onDelete }) => {
+  // Simple function to get status color
+  const getStatusColor = (status) => {
+    if (status === "Complete") return "#28a745";
+    if (status === "In Progress") return "#ffc107";
+    return "#6c757d"; // Pending
   };
 
   return (
     <div className="task-item">
       <div className="task-content">
-        <h3>{task.title}</h3>
-        <p>{task.description || "No description provided"}</p>
-        <div className="task-meta">
-          <span className={`task-status ${getStatusClass(task.status)}`}>
+        <h4>{task.title}</h4>
+        {task.description && <p>{task.description}</p>}
+        
+        <div className="task-status">
+          <span 
+            className="status-badge"
+            style={{ backgroundColor: getStatusColor(task.status) }}
+          >
             {task.status}
           </span>
-          <div style={{ marginTop: "8px", fontSize: "0.85rem" }}>
-            <div>Created: {formatDate(task.createdAt)}</div>
-            {task.updatedAt !== task.createdAt && (
-              <div>Updated: {formatDate(task.updatedAt)}</div>
-            )}
-          </div>
         </div>
       </div>
+      
       <div className="task-actions">
-        <button
+        <button 
+          onClick={() => onEdit(task)} 
           className="btn btn-edit"
-          onClick={() => onEdit(task)}
-          disabled={disabled}
         >
           Edit
         </button>
-        <button
+        <button 
+          onClick={() => onDelete(task._id)} 
           className="btn btn-delete"
-          onClick={() => onDelete(task._id)}
-          disabled={disabled}
         >
           Delete
         </button>

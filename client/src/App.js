@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { taskService } from "./services/taskService";
 import TaskList from "./components/TaskList";
 import TaskForm from "./components/TaskForm";
@@ -7,261 +7,194 @@ import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 
 function App() {
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Simple state for authentication
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
-
-  // Task state
+  
+  // Simple state for tasks
   const [tasks, setTasks] = useState([]);
-  const [filteredTasks, setFilteredTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
 
-  // Check authentication on app load
+  // Check if user is already logged in when app starts
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
     
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
-      setIsAuthenticated(true);
+      setIsLoggedIn(true);
     }
-    setLoading(false);
   }, []);
 
-  // Load tasks when authenticated
+  // Load tasks when user logs in
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isLoggedIn) {
       loadTasks();
     }
-  }, [isAuthenticated]);
+  }, [isLoggedIn]);
 
-  const filterTasks = useCallback(() => {
-    if (statusFilter === "All") {
-      setFilteredTasks(tasks);
-    } else {
-      setFilteredTasks(tasks.filter((task) => task.status === statusFilter));
-    }
-  }, [tasks, statusFilter]);
-
-  useEffect(() => {
-    filterTasks();
-  }, [filterTasks]);
-
-  // Authentication handlers
-  const handleLoginSuccess = (userData, token) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    setError(null);
-  };
-
-  const handleRegisterSuccess = (userData, token) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    setError(null);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
-    setTasks([]);
-    setFilteredTasks([]);
-  };
-
-  const handleSwitchToRegister = () => {
-    setShowRegister(true);
-  };
-
-  const handleSwitchToLogin = () => {
-    setShowRegister(false);
-  };
-
+  // Load all tasks from server
   const loadTasks = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const data = await taskService.getAllTasks();
       setTasks(data);
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      alert("Error loading tasks: " + error.message);
+    }
+    setLoading(false);
+  };
+
+  // Handle successful login
+  const handleLogin = (userData, token) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+  };
+
+  // Handle successful registration
+  const handleRegister = (userData, token) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIsLoggedIn(false);
+    setTasks([]);
+  };
+
+  // Create new task
+  const handleCreateTask = async (taskData) => {
+    try {
+      const newTask = await taskService.createTask(taskData);
+      setTasks([...tasks, newTask]);
+      setShowTaskForm(false);
+    } catch (error) {
+      alert("Error creating task: " + error.message);
     }
   };
 
-  const handleAddTask = () => {
-    setEditingTask(null);
-    setShowForm(true);
-  };
-
-  const handleEditTask = (task) => {
-    setEditingTask(task);
-    setShowForm(true);
-  };
-
-  const handleFormSubmit = async (formData) => {
+  // Update existing task
+  const handleUpdateTask = async (taskData) => {
     try {
-      setActionLoading(true);
-      setError(null);
-      if (editingTask) {
-        await taskService.updateTask(editingTask._id, formData);
-      } else {
-        await taskService.createTask(formData);
-      }
-      await loadTasks();
-      setShowForm(false);
+      const updatedTask = await taskService.updateTask(editingTask._id, taskData);
+      setTasks(tasks.map(task => task._id === editingTask._id ? updatedTask : task));
+      setShowTaskForm(false);
       setEditingTask(null);
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setActionLoading(false);
+      alert("Error updating task: " + error.message);
     }
   };
 
+  // Delete task
   const handleDeleteTask = async (taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
-        setActionLoading(true);
-        setError(null);
         await taskService.deleteTask(taskId);
-        await loadTasks();
+        setTasks(tasks.filter(task => task._id !== taskId));
       } catch (error) {
-        setError(error.message);
-      } finally {
-        setActionLoading(false);
+        alert("Error deleting task: " + error.message);
       }
     }
   };
 
-  const handleFormCancel = () => {
-    setShowForm(false);
+  // Open form to add new task
+  const handleAddTask = () => {
     setEditingTask(null);
+    setShowTaskForm(true);
   };
 
-  const handleFilterChange = (filter) => {
-    setStatusFilter(filter);
+  // Open form to edit existing task
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setShowTaskForm(true);
   };
 
-  const handleRetry = () => {
-    loadTasks();
-  };
-
-  // Show loading screen on initial load
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
-  // Show authentication forms if not logged in
-  if (!isAuthenticated) {
-    if (showRegister) {
-      return (
-        <RegisterForm 
-          onRegisterSuccess={handleRegisterSuccess}
-          onSwitchToLogin={handleSwitchToLogin}
-        />
-      );
+  // Submit task form (create or update)
+  const handleTaskFormSubmit = (taskData) => {
+    if (editingTask) {
+      handleUpdateTask(taskData);
     } else {
-      return (
-        <LoginForm 
-          onLoginSuccess={handleLoginSuccess}
-          onSwitchToRegister={handleSwitchToRegister}
-        />
-      );
+      handleCreateTask(taskData);
     }
-  }
+  };
 
-  // Error handling for authenticated users
-  if (error && !loading) {
+  // Filter tasks by status
+  const getFilteredTasks = () => {
+    if (statusFilter === "All") {
+      return tasks;
+    }
+    return tasks.filter(task => task.status === statusFilter);
+  };
+
+  // Show login/register forms if not logged in
+  if (!isLoggedIn) {
     return (
       <div className="container">
-        <header className="header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1>Task & Incident Tracker</h1>
-              <p>Welcome, {user?.username}!</p>
-            </div>
-            <button onClick={handleLogout} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
-              Logout
-            </button>
-          </div>
-        </header>
-
-        <div className="error-container">
-          <div className="error-message">
-            <h3>❌ Error Loading Tasks</h3>
-            <p>{error}</p>
-            <button className="btn btn-primary" onClick={handleRetry}>
-              Try Again
-            </button>
-          </div>
-        </div>
+        {showRegister ? (
+          <RegisterForm 
+            onRegisterSuccess={handleRegister}
+            onSwitchToLogin={() => setShowRegister(false)}
+          />
+        ) : (
+          <LoginForm 
+            onLoginSuccess={handleLogin}
+            onSwitchToRegister={() => setShowRegister(true)}
+          />
+        )}
       </div>
     );
   }
 
-  // Main authenticated app
+  // Show main app when logged in
   return (
     <div className="container">
       <header className="header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1>Task & Incident Tracker</h1>
-            <p>Welcome, {user?.username}! Manage your tasks and track incidents efficiently</p>
-          </div>
-          <button onClick={handleLogout} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
-            Logout
-          </button>
-        </div>
+        <h1>Task Tracker</h1>
+        <p>Welcome, {user?.username}!</p>
+        <button onClick={handleLogout} className="btn btn-secondary">
+          Logout
+        </button>
       </header>
 
-      {error && (
-        <div className="error-banner">
-          <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)}>×</button>
-        </div>
-      )}
-
-      <StatusFilter
-        currentFilter={statusFilter}
-        onFilterChange={handleFilterChange}
-      />
-
-      <div style={{ marginBottom: "20px" }}>
-        <button
-          className="add-task-btn"
-          onClick={handleAddTask}
-          disabled={actionLoading}
-        >
-          {actionLoading ? "Loading..." : "+ Add New Task"}
+      <div className="controls">
+        <button onClick={handleAddTask} className="btn btn-primary">
+          Add New Task
         </button>
+        
+        <StatusFilter 
+          currentFilter={statusFilter}
+          onFilterChange={setStatusFilter}
+        />
       </div>
 
-      <TaskList
-        tasks={filteredTasks}
-        onEdit={handleEditTask}
-        onDelete={handleDeleteTask}
-        loading={loading}
-        actionLoading={actionLoading}
-      />
+      {loading ? (
+        <div className="loading">Loading tasks...</div>
+      ) : (
+        <TaskList 
+          tasks={getFilteredTasks()}
+          onEdit={handleEditTask}
+          onDelete={handleDeleteTask}
+        />
+      )}
 
-      <TaskForm
-        task={editingTask}
-        onSubmit={handleFormSubmit}
-        onCancel={handleFormCancel}
-        isOpen={showForm}
-        loading={actionLoading}
-      />
+      {showTaskForm && (
+        <TaskForm 
+          task={editingTask}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={() => {
+            setShowTaskForm(false);
+            setEditingTask(null);
+          }}
+        />
+      )}
     </div>
   );
 }

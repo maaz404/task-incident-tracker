@@ -1,44 +1,16 @@
-# Multi-stage build for optimized production image
+# Simple React app container
 
-# Stage 1: Build the React application
+# Build stage
 FROM node:18-alpine AS build
-
-# Set working directory
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install all dependencies (including devDependencies for build)
-RUN npm ci --silent
-
-# Copy source code
+RUN npm install
 COPY . .
-
-# Build the application for production
 RUN npm run build
 
-# Stage 2: Production image with Nginx
-FROM nginx:alpine AS production
-
-# Install wget for health checks
-RUN apk --no-cache add wget
-
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy built app from build stage
+# Production stage with nginx
+FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Set proper permissions for nginx user
-RUN chown -R nginx:nginx /usr/share/nginx/html
-
-# Expose port 80
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
-
-# Health check to ensure frontend is serving
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
-# Start Nginx in foreground (run as root for container simplicity)
 CMD ["nginx", "-g", "daemon off;"]

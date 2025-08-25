@@ -1,24 +1,21 @@
 import React from "react";
 
 const StatusFilter = ({ currentFilter, onFilterChange }) => {
-  const filters = ["All", "Open", "In Progress", "Resolved"];
+  const filters = ["All", "Pending", "In Progress", "Complete"];
 
   return (
-    <div className="filters">
-      <span style={{ fontWeight: "bold", marginRight: "10px" }}>
-        Filter by status:
-      </span>
-      {filters.map((filter) => (
-        <button
-          key={filter}
-          className={`filter-button ${
-            currentFilter === filter ? "active" : ""
-          }`}
-          onClick={() => onFilterChange(filter)}
-        >
-          {filter}
-        </button>
-      ))}
+    <div className="status-filter">
+      <label>Filter by status: </label>
+      <select 
+        value={currentFilter} 
+        onChange={(e) => onFilterChange(e.target.value)}
+      >
+        {filters.map((filter) => (
+          <option key={filter} value={filter}>
+            {filter}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };

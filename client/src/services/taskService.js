@@ -1,96 +1,76 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-const API_BASE_PATH = process.env.REACT_APP_API_BASE_PATH || "";
+// Simple API configuration
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
+// Simple function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
     "Content-Type": "application/json",
-  },
-});
+    Authorization: token ? `Bearer ${token}` : ""
+  };
+};
 
-// Add request interceptor to include auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Simple error handler
+const handleError = (error) => {
+  if (error.response?.status === 401) {
+    // User is not logged in anymore
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    throw new Error("Please log in again");
   }
-);
-
-// Add response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    let errorMessage = "An unexpected error occurred";
-
-    if (error.response) {
-      // Server responded with error status
-      if (error.response.status === 401) {
-        // Unauthorized - clear local storage and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        errorMessage = "Session expired. Please log in again.";
-      } else {
-        errorMessage =
-          error.response.data?.message ||
-          `Server error: ${error.response.status}`;
-      }
-    } else if (error.request) {
-      // Network error
-      errorMessage =
-        "Network error - please check your connection and ensure the backend is running";
-    }
-
-    throw new Error(errorMessage);
-  }
-);
+  
+  const message = error.response?.data?.message || error.message || "Something went wrong";
+  throw new Error(message);
+};
 
 export const taskService = {
+  // Get all tasks for current user
   getAllTasks: async () => {
     try {
-      const response = await apiClient.get(`${API_BASE_PATH}/tasks`);
+      const response = await axios.get(`${API_URL}/tasks`, {
+        headers: getAuthHeaders()
+      });
       return response.data;
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   },
 
-  createTask: async (task) => {
+  // Create a new task
+  createTask: async (taskData) => {
     try {
-      const response = await apiClient.post(`${API_BASE_PATH}/tasks`, task);
+      const response = await axios.post(`${API_URL}/tasks`, taskData, {
+        headers: getAuthHeaders()
+      });
       return response.data;
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   },
 
-  updateTask: async (id, task) => {
+  // Update an existing task
+  updateTask: async (id, taskData) => {
     try {
-      const response = await apiClient.put(
-        `${API_BASE_PATH}/tasks/${id}`,
-        task
-      );
+      const response = await axios.put(`${API_URL}/tasks/${id}`, taskData, {
+        headers: getAuthHeaders()
+      });
       return response.data;
     } catch (error) {
-      throw error;
+      handleError(error);
     }
   },
 
+  // Delete a task
   deleteTask: async (id) => {
     try {
-      const response = await apiClient.delete(`${API_BASE_PATH}/tasks/${id}`);
+      const response = await axios.delete(`${API_URL}/tasks/${id}`, {
+        headers: getAuthHeaders()
+      });
       return response.data;
     } catch (error) {
-      throw error;
+      handleError(error);
     }
-  },
+  }
 };

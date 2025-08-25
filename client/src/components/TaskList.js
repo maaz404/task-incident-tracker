@@ -1,42 +1,24 @@
 import React from "react";
 import TaskItem from "./TaskItem";
 
-const TaskList = ({
-  tasks,
-  onEdit,
-  onDelete,
-  loading,
-  actionLoading = false,
-}) => {
-  if (loading) {
-    return <div className="loading">Loading tasks...</div>;
-  }
-
+const TaskList = ({ tasks, onEdit, onDelete }) => {
   if (tasks.length === 0) {
     return (
-      <div className="tasks-container">
-        <div className="empty-state">
-          <h3>No tasks found</h3>
-          <p>Create your first task to get started</p>
-        </div>
+      <div className="empty-state">
+        <h3>No tasks yet</h3>
+        <p>Click "Add New Task" to get started</p>
       </div>
     );
   }
 
   return (
-    <div className="tasks-container">
-      {actionLoading && (
-        <div className="action-loading">
-          <div className="loading">Processing...</div>
-        </div>
-      )}
+    <div className="task-list">
       {tasks.map((task) => (
         <TaskItem
           key={task._id}
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
-          disabled={actionLoading}
         />
       ))}
     </div>
