@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,8 +19,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
           cache-dependency-path: |
             client/package-lock.json
             server/package-lock.json
@@ -58,7 +58,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -75,73 +75,73 @@ jobs:
         run: |
           set -e  # Exit immediately if any command fails
           set -x  # Print commands as they're executed (for debugging)
-          
+
           echo "=== SSH Configuration Starting ==="
           echo "Runner OS: $RUNNER_OS"
           echo "Home directory: $HOME"
           echo "Current user: $(whoami)"
-          
+
           # Validate required secrets
           if [ -z "${{ secrets.EC2_SSH_KEY }}" ]; then
             echo "ERROR: EC2_SSH_KEY secret is not set or empty"
             exit 1
           fi
-          
+
           if [ -z "${{ secrets.EC2_HOST }}" ]; then
             echo "ERROR: EC2_HOST secret is not set or empty" 
             exit 1
           fi
-          
+
           if [ -z "${{ secrets.EC2_USERNAME }}" ]; then
             echo "ERROR: EC2_USERNAME secret is not set or empty"
             exit 1
           fi
-          
+
           echo "All required secrets are present"
-          
+
           # Create SSH directory with proper error handling
           echo "=== Creating SSH Directory ==="
           SSH_DIR="$HOME/.ssh"
-          
+
           if ! mkdir -p "$SSH_DIR" 2>/dev/null; then
             echo "ERROR: Failed to create SSH directory: $SSH_DIR"
             echo "Directory permissions:"
             ls -la "$HOME" || echo "Cannot list home directory"
             exit 1
           fi
-          
+
           # Set SSH directory permissions
           if ! chmod 700 "$SSH_DIR" 2>/dev/null; then
             echo "ERROR: Failed to set permissions on SSH directory"
             ls -la "$SSH_DIR" || echo "Cannot list SSH directory"
             exit 1
           fi
-          
+
           echo "SSH directory created successfully: $SSH_DIR"
-          
+
           # Create SSH private key file
           echo "=== Creating SSH Private Key ==="
           SSH_KEY_FILE="$SSH_DIR/id_rsa"
-          
+
           # Write SSH key to file
           if ! echo "${{ secrets.EC2_SSH_KEY }}" > "$SSH_KEY_FILE" 2>/dev/null; then
             echo "ERROR: Failed to write SSH key to file: $SSH_KEY_FILE"
             exit 1
           fi
-          
+
           # Set SSH key permissions
           if ! chmod 600 "$SSH_KEY_FILE" 2>/dev/null; then
             echo "ERROR: Failed to set permissions on SSH key file"
             ls -la "$SSH_KEY_FILE" || echo "Cannot list SSH key file"
             exit 1
           fi
-          
+
           # Verify SSH key file was created
           if [ ! -f "$SSH_KEY_FILE" ]; then
             echo "ERROR: SSH key file was not created: $SSH_KEY_FILE"
             exit 1
           fi
-          
+
           # Check SSH key file size
           KEY_SIZE=$(stat -c%s "$SSH_KEY_FILE" 2>/dev/null || echo "0")
           if [ "$KEY_SIZE" -lt 100 ]; then
@@ -150,9 +150,9 @@ jobs:
             head -n1 "$SSH_KEY_FILE" || echo "Cannot read key file"
             exit 1
           fi
-          
+
           echo "SSH key file created successfully ($KEY_SIZE bytes)"
-          
+
           # Validate SSH key format
           KEY_HEADER=$(head -n1 "$SSH_KEY_FILE" 2>/dev/null || echo "")
           if [[ "$KEY_HEADER" != *"BEGIN"* ]]; then
@@ -161,29 +161,29 @@ jobs:
           else
             echo "SSH key format appears correct"
           fi
-          
+
           # Add EC2 host to known_hosts
           echo "=== Adding Host to known_hosts ==="
           KNOWN_HOSTS_FILE="$SSH_DIR/known_hosts"
-          
+
           if ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> "$KNOWN_HOSTS_FILE" 2>/dev/null; then
             chmod 644 "$KNOWN_HOSTS_FILE" 2>/dev/null || echo "WARNING: Could not set known_hosts permissions"
             echo "Host added to known_hosts successfully"
           else
             echo "WARNING: Failed to add host to known_hosts (will use StrictHostKeyChecking=no)"
           fi
-          
+
           # Final verification
           echo "=== Final SSH Setup Verification ==="
           echo "SSH directory contents:"
           ls -la "$SSH_DIR/"
-          
+
           echo "SSH directory permissions:"
           stat -c "%a %n" "$SSH_DIR" 2>/dev/null || ls -ld "$SSH_DIR"
-          
+
           echo "SSH key permissions:" 
           stat -c "%a %n" "$SSH_KEY_FILE" 2>/dev/null || ls -l "$SSH_KEY_FILE"
-          
+
           # Test SSH key with ssh-keygen if available
           if command -v ssh-keygen >/dev/null 2>&1; then
             echo "=== SSH Key Validation ==="
@@ -193,7 +193,7 @@ jobs:
               echo "WARNING: SSH key validation failed - authentication may fail"
             fi
           fi
-          
+
           echo "=== SSH Configuration Completed Successfully ==="
 
       - name: Copy files to EC2
@@ -204,21 +204,21 @@ jobs:
       - name: Deploy on EC2
         run: |
           echo "=== Deploying to EC2 ==="
-          
+
           # Verify SSH key exists before attempting SSH
           if [ ! -f "$HOME/.ssh/id_rsa" ]; then
             echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
             exit 1
           fi
-          
+
           # Connect to EC2 and deploy
           ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-          
+
           # Set up deployment directory
           DEPLOY_DIR="~/task-incident-tracker"
           BACKUP_DIR="~/task-incident-tracker-backup-$(date +%Y%m%d-%H%M%S)"
-          
+
           # Backup existing deployment if it exists
           if [ -d "$DEPLOY_DIR" ]; then
             echo "Creating backup of existing deployment..."
@@ -228,76 +228,81 @@ jobs:
             cd "$DEPLOY_DIR"
             docker-compose down || true
           fi
-          
+
           # Remove old deployment directory
           rm -rf "$DEPLOY_DIR"
-          
+
           # Clone latest code directly from GitHub
           echo "Cloning latest code from GitHub..."
           git clone https://github.com/maaz404/task-incident-tracker.git "$DEPLOY_DIR"
           cd "$DEPLOY_DIR"
-          
+
           # Verify we have the latest commit
           echo "=== Verifying latest deployment ==="
           echo "Current commit: $(git log --oneline -n 1)"
           echo "Branch: $(git branch --show-current)"
-          
+
           # Verify critical files exist
           if [ -f "README.md" ]; then
             echo "✅ README.md present"
           else
             echo "❌ README.md missing"
           fi
-          
+
           if [ -f "docker-compose.yml" ]; then
             echo "✅ docker-compose.yml present"
           else
             echo "❌ docker-compose.yml missing"
           fi
-          
+
           # Ensure Docker is running
           sudo systemctl start docker
           sudo systemctl enable docker
-          
+
           # Add user to docker group if not already added
           sudo usermod -aG docker $USER || true
-          
+
           # Stop and remove old containers completely
           echo "Stopping and removing old containers..."
           docker-compose down --volumes --remove-orphans || true
-          
+
           # Remove old images to force rebuild
           echo "Cleaning up old Docker images..."
           docker system prune -f || true
-          
+
           # Build containers from scratch
           echo "Building containers from scratch..."
           docker-compose build --no-cache --pull
-          
+
           # Start containers
           echo "Starting containers..."
           docker-compose up -d
-          
+
           # Wait for containers to be ready
           echo "Waiting for containers to start..."
           sleep 45
-          
+
           # Check container health
           echo "Container status:"
           docker-compose ps
-          
+
           # Show logs for debugging
           echo "Container logs:"
           docker-compose logs --tail=30
-          
+
           # Test endpoints
           echo "Testing endpoints..."
-          curl -f http://localhost:5000 || echo "Backend not responding"
-          curl -f http://localhost || echo "Frontend not responding"
+          echo "Testing backend directly:"
+          curl -f http://localhost:5000 || echo "Direct backend not responding"
+          curl -f http://localhost:5000/api/health || echo "Backend health check failed"
           
+          echo "Testing frontend and API proxy:"
+          curl -f http://localhost || echo "Frontend not responding"
+          curl -f http://localhost/api/health || echo "API proxy not working"
+
           # Keep only the 3 most recent backups
           ls -dt ~/task-incident-tracker-backup-* | tail -n +4 | xargs rm -rf || true
-          
+
           echo "Deployment completed successfully!"
           ENDSSH
 
@@ -305,20 +310,20 @@ jobs:
         run: |
           echo "=== Verifying deployment ==="
           sleep 10
-          
+
           # Verify SSH key exists before attempting SSH
           if [ ! -f "$HOME/.ssh/id_rsa" ]; then
             echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
             exit 1
           fi
-          
+
           # Test if the application is responding
           ssh -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-          
+
           # Check if containers are running
           cd ~/task-incident-tracker
-          
+
           # Final verification that README.md is present
           echo "=== Final README.md verification ==="
           if [ -f "README.md" ]; then
@@ -332,7 +337,7 @@ jobs:
             echo "Directory contents:"
             ls -la
           fi
-          
+
           if docker-compose ps | grep -q "Up"; then
             echo "✅ Containers are running successfully"
             
@@ -353,7 +358,7 @@ jobs:
         if: always()
         run: |
           echo "=== Cleaning up SSH configuration ==="
-          
+
           # Clean up SSH key file for security
           if [ -f "$HOME/.ssh/id_rsa" ]; then
             rm -f "$HOME/.ssh/id_rsa"
@@ -361,20 +366,20 @@ jobs:
           else
             echo "SSH private key not found (already cleaned up)"
           fi
-          
+
           # Optionally clean up known_hosts entry
           if [ -f "$HOME/.ssh/known_hosts" ]; then
             sed -i "/${{ secrets.EC2_HOST }}/d" "$HOME/.ssh/known_hosts" 2>/dev/null || true
             echo "Host entry removed from known_hosts"
           fi
-          
+
           echo "SSH cleanup completed"
-          
+
   notification:
     needs: [test, deploy]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Deployment Status
         run: |

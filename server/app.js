@@ -32,6 +32,16 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", tasksRoutes);
 
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
 // Welcome message
 app.get("/", (req, res) => {
   res.json({
@@ -43,7 +53,8 @@ app.get("/", (req, res) => {
       "Get Tasks": "GET /api/tasks",
       "Create Task": "POST /api/tasks",
       "Update Task": "PUT /api/tasks/:id",
-      "Delete Task": "DELETE /api/tasks/:id"
+      "Delete Task": "DELETE /api/tasks/:id",
+      "Health Check": "GET /api/health"
     }
   });
 });
@@ -60,8 +71,9 @@ app.use("*", (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
 });
 
 module.exports = app;
