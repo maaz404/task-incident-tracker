@@ -11,13 +11,14 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
     setLoading(true);
     setError("");
 
-    const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+    const API_URL =
+      process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
@@ -33,7 +34,7 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
     } catch (err) {
       setError("Connection error. Is the server running?");
     }
-    
+
     setLoading(false);
   };
 
@@ -41,7 +42,7 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
     <div className="auth-container">
       <div className="auth-form">
         <h2>Login to Task Tracker</h2>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Username:</label>

@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "echo \"No tests specified yet - this is a placeholder for CI\" && exit 0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

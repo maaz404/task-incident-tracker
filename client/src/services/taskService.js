@@ -8,7 +8,7 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return {
     "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : ""
+    Authorization: token ? `Bearer ${token}` : "",
   };
 };
 
@@ -20,8 +20,9 @@ const handleError = (error) => {
     localStorage.removeItem("user");
     throw new Error("Please log in again");
   }
-  
-  const message = error.response?.data?.message || error.message || "Something went wrong";
+
+  const message =
+    error.response?.data?.message || error.message || "Something went wrong";
   throw new Error(message);
 };
 
@@ -30,7 +31,7 @@ export const taskService = {
   getAllTasks: async () => {
     try {
       const response = await axios.get(`${API_URL}/tasks`, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
@@ -42,7 +43,7 @@ export const taskService = {
   createTask: async (taskData) => {
     try {
       const response = await axios.post(`${API_URL}/tasks`, taskData, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
@@ -54,7 +55,7 @@ export const taskService = {
   updateTask: async (id, taskData) => {
     try {
       const response = await axios.put(`${API_URL}/tasks/${id}`, taskData, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
@@ -66,11 +67,11 @@ export const taskService = {
   deleteTask: async (id) => {
     try {
       const response = await axios.delete(`${API_URL}/tasks/${id}`, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
       handleError(error);
     }
-  }
+  },
 };

@@ -14,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Check if token is valid
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Get user info
     const user = await User.findById(decoded.userId);
     if (!user) {
@@ -24,12 +24,13 @@ const authenticateToken = async (req, res, next) => {
     // Add user info to request so routes can use it
     req.user = user;
     next();
-    
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "Login expired, please log in again" });
+      return res
+        .status(401)
+        .json({ message: "Login expired, please log in again" });
     }
-    
+
     return res.status(401).json({ message: "Invalid login token" });
   }
 };

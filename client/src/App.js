@@ -11,7 +11,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
-  
+
   // Simple state for tasks
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-    
+
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
       setIsLoggedIn(true);
@@ -84,8 +84,13 @@ function App() {
   // Update existing task
   const handleUpdateTask = async (taskData) => {
     try {
-      const updatedTask = await taskService.updateTask(editingTask._id, taskData);
-      setTasks(tasks.map(task => task._id === editingTask._id ? updatedTask : task));
+      const updatedTask = await taskService.updateTask(
+        editingTask._id,
+        taskData
+      );
+      setTasks(
+        tasks.map((task) => (task._id === editingTask._id ? updatedTask : task))
+      );
       setShowTaskForm(false);
       setEditingTask(null);
     } catch (error) {
@@ -98,7 +103,7 @@ function App() {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
         await taskService.deleteTask(taskId);
-        setTasks(tasks.filter(task => task._id !== taskId));
+        setTasks(tasks.filter((task) => task._id !== taskId));
       } catch (error) {
         alert("Error deleting task: " + error.message);
       }
@@ -131,7 +136,7 @@ function App() {
     if (statusFilter === "All") {
       return tasks;
     }
-    return tasks.filter(task => task.status === statusFilter);
+    return tasks.filter((task) => task.status === statusFilter);
   };
 
   // Show login/register forms if not logged in
@@ -139,12 +144,12 @@ function App() {
     return (
       <div className="container">
         {showRegister ? (
-          <RegisterForm 
+          <RegisterForm
             onRegisterSuccess={handleRegister}
             onSwitchToLogin={() => setShowRegister(false)}
           />
         ) : (
-          <LoginForm 
+          <LoginForm
             onLoginSuccess={handleLogin}
             onSwitchToRegister={() => setShowRegister(true)}
           />
@@ -168,8 +173,8 @@ function App() {
         <button onClick={handleAddTask} className="btn btn-primary">
           Add New Task
         </button>
-        
-        <StatusFilter 
+
+        <StatusFilter
           currentFilter={statusFilter}
           onFilterChange={setStatusFilter}
         />
@@ -178,7 +183,7 @@ function App() {
       {loading ? (
         <div className="loading">Loading tasks...</div>
       ) : (
-        <TaskList 
+        <TaskList
           tasks={getFilteredTasks()}
           onEdit={handleEditTask}
           onDelete={handleDeleteTask}
@@ -186,7 +191,7 @@ function App() {
       )}
 
       {showTaskForm && (
-        <TaskForm 
+        <TaskForm
           task={editingTask}
           onSubmit={handleTaskFormSubmit}
           onCancel={() => {
