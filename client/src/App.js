@@ -162,7 +162,7 @@ function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>Task Tracker</h1>
+        <h1>Task Tracker Test 1</h1>
         <p>Welcome, {user?.username}!</p>
         <button onClick={handleLogout} className="btn btn-secondary">
           Logout
