@@ -16,7 +16,8 @@ app.use(express.json());
 // Simple MongoDB connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/task_tracker";
+    const mongoURI =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/task_tracker";
     await mongoose.connect(mongoURI);
     console.log("✅ Connected to MongoDB");
   } catch (error) {
@@ -38,7 +39,7 @@ app.get("/api/health", (req, res) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || "development"
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
@@ -48,14 +49,14 @@ app.get("/", (req, res) => {
     message: "Task Tracker API",
     version: "1.0.0",
     endpoints: {
-      "Register": "POST /api/auth/register",
-      "Login": "POST /api/auth/login", 
+      Register: "POST /api/auth/register",
+      Login: "POST /api/auth/login",
       "Get Tasks": "GET /api/tasks",
       "Create Task": "POST /api/tasks",
       "Update Task": "PUT /api/tasks/:id",
       "Delete Task": "DELETE /api/tasks/:id",
-      "Health Check": "GET /api/health"
-    }
+      "Health Check": "GET /api/health",
+    },
   });
 });
 
@@ -71,7 +72,7 @@ app.use("*", (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
 });

@@ -295,7 +295,7 @@ jobs:
           echo "Testing backend directly:"
           curl -f http://localhost:5000 || echo "Direct backend not responding"
           curl -f http://localhost:5000/api/health || echo "Backend health check failed"
-          
+
           echo "Testing frontend and API proxy:"
           curl -f http://localhost || echo "Frontend not responding"
           curl -f http://localhost/api/health || echo "API proxy not working"
