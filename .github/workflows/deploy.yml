@@ -51,7 +51,7 @@ jobs:
       - name: Run frontend tests
         run: |
           cd client
-          npm test -- --coverage --watchAll=false
+          npm test
         continue-on-error: false
 
   deploy:
@@ -63,102 +63,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create deployment package
+      - name: Prepare deployment
         run: |
-          # Verify README.md exists before packaging
-          echo "=== Checking for README.md ==="
-          if [ -f "README.md" ]; then
-            echo "✅ README.md found in repository"
-            echo "README.md size: $(wc -c < README.md) bytes"
-            echo "README.md last modified: $(stat -c %y README.md)"
-          else
-            echo "❌ README.md not found in repository"
-          fi
-          
-          # List files to be included (for debugging)
-          echo "=== Files to be packaged ==="
-          find . -type f \
-            ! -path "./node_modules/*" \
-            ! -path "./.git/*" \
-            ! -path "./.github/*" \
-            ! -path "./coverage/*" \
-            ! -path "./build/*" \
-            ! -path "./dist/*" \
-            ! -path "./.cache/*" \
-            ! -path "./.nyc_output/*" \
-            ! -name "*.log" \
-            ! -name ".env.local" \
-            ! -name ".DS_Store" \
-            ! -name "Thumbs.db" \
-            ! -name "*.tmp" \
-            ! -name "*.temp" \
-            ! -name ".eslintcache" \
-            ! -name "junit.xml" | head -20
-            
-          # Specifically check if README.md will be included
-          echo "=== Checking if README.md will be included ==="
-          if find . -name "README.md" -type f \
-            ! -path "./node_modules/*" \
-            ! -path "./.git/*" \
-            ! -path "./.github/*" \
-            ! -path "./coverage/*" \
-            ! -path "./build/*" \
-            ! -path "./dist/*" \
-            ! -path "./.cache/*" \
-            ! -path "./.nyc_output/*" | grep -q "README.md"; then
-            echo "✅ README.md will be included in deployment package"
-          else
-            echo "❌ README.md will NOT be included in deployment package"
-          fi
-            
-          # Create deployment archive with comprehensive exclusions
-          tar -czf deployment.tar.gz \
-            --warning=no-file-changed \
-            --exclude='./node_modules' \
-            --exclude='./client/node_modules' \
-            --exclude='./server/node_modules' \
-            --exclude='./.git' \
-            --exclude='./.github' \
-            --exclude='./coverage' \
-            --exclude='./client/coverage' \
-            --exclude='./server/coverage' \
-            --exclude='./build' \
-            --exclude='./client/build' \
-            --exclude='./dist' \
-            --exclude='./.cache' \
-            --exclude='./.nyc_output' \
-            --exclude='./.vscode' \
-            --exclude='./.idea' \
-            --exclude-tag-all='.gitignore' \
-            --exclude='*.log' \
-            --exclude='*.log.*' \
-            --exclude='.env.local' \
-            --exclude='.env.*.local' \
-            --exclude='.DS_Store' \
-            --exclude='Thumbs.db' \
-            --exclude='*.tmp' \
-            --exclude='*.temp' \
-            --exclude='.eslintcache' \
-            --exclude='junit.xml' \
-            --exclude='*.tgz' \
-            --exclude='*.tar.gz' \
-            .
-          
-          # Verify archive was created and show size
-          ls -lh deployment.tar.gz
-          
-          # Verify README.md is in the archive
-          echo "=== Verifying README.md in deployment archive ==="
-          if tar -tzf deployment.tar.gz | grep -q "README.md"; then
-            echo "✅ README.md is present in deployment archive"
-          else
-            echo "❌ README.md is missing from deployment archive"
-            echo "Archive contents:"
-            tar -tzf deployment.tar.gz | head -20
-          fi
-          
-          echo "Archive contents preview:"
-          tar -tzf deployment.tar.gz | head -20
+          echo "=== Preparing deployment ==="
+          echo "Repository: https://github.com/maaz404/task-incident-tracker.git"
+          echo "Branch: main"
+          echo "Latest commit: $(git log --oneline -n 1)"
+          echo "Deployment will clone directly from GitHub on EC2"
 
       - name: Configure SSH
         run: |
@@ -287,26 +198,8 @@ jobs:
 
       - name: Copy files to EC2
         run: |
-          echo "=== Copying deployment files to EC2 ==="
-          
-          # Verify SSH key exists before attempting SCP
-          if [ ! -f "$HOME/.ssh/id_rsa" ]; then
-            echo "ERROR: SSH private key not found at $HOME/.ssh/id_rsa"
-            exit 1
-          fi
-          
-          # Copy deployment package to EC2
-          echo "Copying deployment.tar.gz to EC2 instance..."
-          if ! scp -i "$HOME/.ssh/id_rsa" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            deployment.tar.gz \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/; then
-            echo "ERROR: Failed to copy files to EC2"
-            echo "Checking SSH key permissions:"
-            ls -la "$HOME/.ssh/id_rsa"
-            exit 1
-          fi
-          
-          echo "Files copied to EC2 successfully"
+          echo "=== Files will be cloned directly from GitHub on EC2 ==="
+          echo "Skipping file copy step - using git clone instead"
 
       - name: Deploy on EC2
         run: |
@@ -336,30 +229,31 @@ jobs:
             docker-compose down || true
           fi
           
-          # Create fresh deployment directory
+          # Remove old deployment directory
           rm -rf "$DEPLOY_DIR"
-          mkdir -p "$DEPLOY_DIR"
           
-          # Extract new deployment
+          # Clone latest code directly from GitHub
+          echo "Cloning latest code from GitHub..."
+          git clone https://github.com/maaz404/task-incident-tracker.git "$DEPLOY_DIR"
           cd "$DEPLOY_DIR"
-          tar -xzf ~/deployment.tar.gz
           
-          # Verify README.md was extracted
-          echo "=== Verifying README.md deployment ==="
+          # Verify we have the latest commit
+          echo "=== Verifying latest deployment ==="
+          echo "Current commit: $(git log --oneline -n 1)"
+          echo "Branch: $(git branch --show-current)"
+          
+          # Verify critical files exist
           if [ -f "README.md" ]; then
-            echo "✅ README.md successfully deployed to EC2"
-            echo "README.md size: $(wc -c < README.md) bytes"
-            echo "README.md location: $(pwd)/README.md"
-            echo "First few lines of README.md:"
-            head -5 README.md || echo "Cannot read README.md content"
+            echo "✅ README.md present"
           else
-            echo "❌ README.md not found after deployment"
-            echo "Current directory contents:"
-            ls -la
+            echo "❌ README.md missing"
           fi
           
-          # Clean up deployment archive
-          rm ~/deployment.tar.gz
+          if [ -f "docker-compose.yml" ]; then
+            echo "✅ docker-compose.yml present"
+          else
+            echo "❌ docker-compose.yml missing"
+          fi
           
           # Ensure Docker is running
           sudo systemctl start docker
@@ -368,7 +262,7 @@ jobs:
           # Add user to docker group if not already added
           sudo usermod -aG docker $USER || true
           
-          # Build and start containers
+          # Build and start containers with latest code
           echo "Building and starting containers..."
           docker-compose build --no-cache
           docker-compose up -d
@@ -382,7 +276,7 @@ jobs:
           
           # Show logs for debugging
           echo "Container logs:"
-          docker-compose logs --tail=50
+          docker-compose logs --tail=20
           
           # Cleanup old Docker images to save space
           docker image prune -f || true
