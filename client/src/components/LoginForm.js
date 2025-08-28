@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { taskService } from "../services/taskService";
 
 const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
   const [username, setUsername] = useState("");
@@ -11,30 +12,18 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
     setLoading(true);
     setError("");
 
-    const API_URL =
-      process.env.REACT_APP_API_URL || "http://localhost:5000/api";
-
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Save user data and token
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        onLoginSuccess(data.user, data.token);
-      } else {
-        setError(data.message || "Login failed");
-      }
-    } catch (err) {
-      setError("Connection error. Is the server running?");
+      const response = await taskService.login({ username, password });
+      
+      // Store token and user data
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+      
+      onLoginSuccess(response.user, response.token);
+    } catch (error) {
+      setError(error.message || "Login failed");
     }
-
+    
     setLoading(false);
   };
 

@@ -1,6 +1,7 @@
 const express = require("express");
 const Task = require("../models/Task");
 const { authenticateToken } = require("../middleware/auth");
+const { updateTaskMetrics } = require("../middleware/metrics");
 
 const router = express.Router();
 
@@ -10,8 +11,9 @@ router.use(authenticateToken);
 // Get all tasks for current user
 router.get("/", async (req, res) => {
   try {
-    const tasks = await Task.find({ userId: req.user._id })
-      .sort({ createdAt: -1 }); // Newest first
+    const tasks = await Task.find({ userId: req.user._id }).sort({
+      createdAt: -1,
+    }); // Newest first
 
     res.json(tasks);
   } catch (error) {
@@ -39,6 +41,10 @@ router.post("/", async (req, res) => {
     });
 
     const savedTask = await task.save();
+
+    // Update metrics after creating task
+    await updateTaskMetrics(Task);
+
     res.status(201).json(savedTask);
   } catch (error) {
     console.error("Error creating task:", error);
@@ -72,6 +78,9 @@ router.put("/:id", async (req, res) => {
     }
 
     res.json(task);
+
+    // Update metrics after updating task
+    await updateTaskMetrics(Task);
   } catch (error) {
     console.error("Error updating task:", error);
     res.status(500).json({ message: "Failed to update task" });
@@ -92,6 +101,9 @@ router.delete("/:id", async (req, res) => {
     }
 
     res.json({ message: "Task deleted successfully" });
+
+    // Update metrics after deleting task
+    await updateTaskMetrics(Task);
   } catch (error) {
     console.error("Error deleting task:", error);
     res.status(500).json({ message: "Failed to delete task" });

@@ -4,6 +4,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Pending");
+  const [type, setType] = useState("Task");
 
   // Fill form with task data if editing
   useEffect(() => {
@@ -11,10 +12,12 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
       setTitle(task.title || "");
       setDescription(task.description || "");
       setStatus(task.status || "Pending");
+      setType(task.type || "Task");
     } else {
       setTitle("");
       setDescription("");
       setStatus("Pending");
+      setType("Task");
     }
   }, [task]);
 
@@ -29,7 +32,8 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
     onSubmit({
       title: title.trim(),
       description: description.trim(),
-      status
+      status,
+      type
     });
   };
 
@@ -58,6 +62,20 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
               placeholder="Enter task description (optional)"
               rows="4"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Type:</label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              <option value="Task">Task</option>
+              <option value="Incident">Incident</option>
+              <option value="Bug">Bug</option>
+              <option value="Feature">Feature</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
           </div>
 
           <div className="form-group">

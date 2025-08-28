@@ -34,6 +34,7 @@ Visit `http://localhost` to use the application.
 **Prerequisites:** Node.js 18+, MongoDB
 
 1. **Backend Setup:**
+
 ```bash
 cd server
 npm install
@@ -41,6 +42,7 @@ npm start
 ```
 
 2. **Frontend Setup:**
+
 ```bash
 cd client
 npm install
@@ -52,6 +54,7 @@ npm start
 ## Environment Configuration
 
 **server/.env:**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/task_incident_tracker
 JWT_SECRET=your_secure_jwt_secret
@@ -59,27 +62,29 @@ PORT=5000
 ```
 
 **client/.env:**
+
 ```env
 REACT_APP_API_URL=/api
 ```
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | User registration |
-| POST | `/api/auth/login` | User login |
-| GET | `/api/tasks` | Get user tasks |
-| POST | `/api/tasks` | Create new task |
-| PUT | `/api/tasks/:id` | Update task |
-| DELETE | `/api/tasks/:id` | Delete task |
-| GET | `/api/health` | Health check |
+| Method | Endpoint             | Description       |
+| ------ | -------------------- | ----------------- |
+| POST   | `/api/auth/register` | User registration |
+| POST   | `/api/auth/login`    | User login        |
+| GET    | `/api/tasks`         | Get user tasks    |
+| POST   | `/api/tasks`         | Create new task   |
+| PUT    | `/api/tasks/:id`     | Update task       |
+| DELETE | `/api/tasks/:id`     | Delete task       |
+| GET    | `/api/health`        | Health check      |
 
 ## Deployment
 
 This project includes automated deployment to AWS EC2 via GitHub Actions.
 
 **Required Secrets:**
+
 - `EC2_SSH_KEY` - Private SSH key for EC2 access
 - `EC2_HOST` - EC2 public IP address
 - `EC2_USERNAME` - EC2 username (ubuntu)

@@ -1,7 +1,5 @@
-import axios from "axios";
-
 // Simple API configuration
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.REACT_APP_API_URL || "/api";
 
 // Simple function to get auth headers
 const getAuthHeaders = () => {
@@ -14,26 +12,29 @@ const getAuthHeaders = () => {
 
 // Simple error handler
 const handleError = (error) => {
-  if (error.response?.status === 401) {
+  if (error.status === 401) {
     // User is not logged in anymore
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     throw new Error("Please log in again");
   }
 
-  const message =
-    error.response?.data?.message || error.message || "Something went wrong";
-  throw new Error(message);
+  throw new Error(error.message || "Something went wrong");
 };
 
 export const taskService = {
   // Get all tasks for current user
   getAllTasks: async () => {
     try {
-      const response = await axios.get(`${API_URL}/tasks`, {
+      const response = await fetch(`${API_URL}/tasks`, {
         headers: getAuthHeaders(),
       });
-      return response.data;
+
+      if (!response.ok) {
+        throw { status: response.status, message: "Failed to fetch tasks" };
+      }
+
+      return await response.json();
     } catch (error) {
       handleError(error);
     }
@@ -42,10 +43,17 @@ export const taskService = {
   // Create a new task
   createTask: async (taskData) => {
     try {
-      const response = await axios.post(`${API_URL}/tasks`, taskData, {
+      const response = await fetch(`${API_URL}/tasks`, {
+        method: "POST",
         headers: getAuthHeaders(),
+        body: JSON.stringify(taskData),
       });
-      return response.data;
+
+      if (!response.ok) {
+        throw { status: response.status, message: "Failed to create task" };
+      }
+
+      return await response.json();
     } catch (error) {
       handleError(error);
     }
@@ -54,10 +62,17 @@ export const taskService = {
   // Update an existing task
   updateTask: async (id, taskData) => {
     try {
-      const response = await axios.put(`${API_URL}/tasks/${id}`, taskData, {
+      const response = await fetch(`${API_URL}/tasks/${id}`, {
+        method: "PUT",
         headers: getAuthHeaders(),
+        body: JSON.stringify(taskData),
       });
-      return response.data;
+
+      if (!response.ok) {
+        throw { status: response.status, message: "Failed to update task" };
+      }
+
+      return await response.json();
     } catch (error) {
       handleError(error);
     }
@@ -66,10 +81,56 @@ export const taskService = {
   // Delete a task
   deleteTask: async (id) => {
     try {
-      const response = await axios.delete(`${API_URL}/tasks/${id}`, {
+      const response = await fetch(`${API_URL}/tasks/${id}`, {
+        method: "DELETE",
         headers: getAuthHeaders(),
       });
-      return response.data;
+
+      if (!response.ok) {
+        throw { status: response.status, message: "Failed to delete task" };
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  // Login user
+  login: async (credentials) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw { status: response.status, message: error.message || "Login failed" };
+      }
+
+      return await response.json();
+    } catch (error) {
+      handleError(error);
+    }
+  },
+
+  // Register user
+  register: async (userData) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw { status: response.status, message: error.message || "Registration failed" };
+      }
+
+      return await response.json();
     } catch (error) {
       handleError(error);
     }

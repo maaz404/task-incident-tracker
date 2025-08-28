@@ -18,6 +18,11 @@ const taskSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Complete"],
       default: "Pending",
     },
+    type: {
+      type: String,
+      enum: ["Task", "Incident", "Bug", "Feature", "Maintenance"],
+      default: "Task",
+    },
     // Which user created this task
     userId: {
       type: mongoose.Schema.Types.ObjectId,

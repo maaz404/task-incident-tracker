@@ -3,7 +3,6 @@ import { taskService } from "./services/taskService";
 import TaskList from "./components/TaskList";
 import TaskForm from "./components/TaskForm";
 import StatusFilter from "./components/StatusFilter";
-import TypeFilter from "./components/TypeFilter";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 
@@ -17,7 +16,6 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
@@ -75,15 +73,10 @@ function App() {
   // Create new task
   const handleCreateTask = async (taskData) => {
     try {
-      console.log('Creating task:', taskData);
       const newTask = await taskService.createTask(taskData);
-      console.log('Task created:', newTask);
-      
-      // Reload tasks to ensure we have the latest data
-      await loadTasks();
+      setTasks([...tasks, newTask]);
       setShowTaskForm(false);
     } catch (error) {
-      console.error('Error creating task:', error);
       alert("Error creating task: " + error.message);
     }
   };
@@ -91,19 +84,16 @@ function App() {
   // Update existing task
   const handleUpdateTask = async (taskData) => {
     try {
-      console.log('Updating task:', editingTask._id, taskData);
       const updatedTask = await taskService.updateTask(
         editingTask._id,
         taskData
       );
-      console.log('Task updated:', updatedTask);
-      
-      // Reload tasks to ensure we have the latest data
-      await loadTasks();
+      setTasks(
+        tasks.map((task) => (task._id === editingTask._id ? updatedTask : task))
+      );
       setShowTaskForm(false);
       setEditingTask(null);
     } catch (error) {
-      console.error('Error updating task:', error);
       alert("Error updating task: " + error.message);
     }
   };
@@ -112,14 +102,9 @@ function App() {
   const handleDeleteTask = async (taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
-        console.log('Deleting task:', taskId);
         await taskService.deleteTask(taskId);
-        console.log('Task deleted');
-        
-        // Reload tasks to ensure we have the latest data
-        await loadTasks();
+        setTasks(tasks.filter((task) => task._id !== taskId));
       } catch (error) {
-        console.error('Error deleting task:', error);
         alert("Error deleting task: " + error.message);
       }
     }
@@ -146,19 +131,12 @@ function App() {
     }
   };
 
-  // Filter tasks by status and type
+  // Filter tasks by status
   const getFilteredTasks = () => {
-    let filtered = tasks;
-    
-    if (statusFilter !== "All") {
-      filtered = filtered.filter((task) => task.status === statusFilter);
+    if (statusFilter === "All") {
+      return tasks;
     }
-    
-    if (typeFilter !== "All") {
-      filtered = filtered.filter((task) => (task.type || "Task") === typeFilter);
-    }
-    
-    return filtered;
+    return tasks.filter((task) => task.status === statusFilter);
   };
 
   // Show login/register forms if not logged in
@@ -196,16 +174,10 @@ function App() {
           Add New Task
         </button>
 
-        <div className="filters">
-          <StatusFilter
-            currentFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-          />
-          <TypeFilter
-            currentFilter={typeFilter}
-            onFilterChange={setTypeFilter}
-          />
-        </div>
+        <StatusFilter
+          currentFilter={statusFilter}
+          onFilterChange={setStatusFilter}
+        />
       </div>
 
       {loading ? (
