@@ -107,7 +107,10 @@ export const taskService = {
 
       if (!response.ok) {
         const error = await response.json();
-        throw { status: response.status, message: error.message || "Login failed" };
+        throw {
+          status: response.status,
+          message: error.message || "Login failed",
+        };
       }
 
       return await response.json();
@@ -127,7 +130,10 @@ export const taskService = {
 
       if (!response.ok) {
         const error = await response.json();
-        throw { status: response.status, message: error.message || "Registration failed" };
+        throw {
+          status: response.status,
+          message: error.message || "Registration failed",
+        };
       }
 
       return await response.json();

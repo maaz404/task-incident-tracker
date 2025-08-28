@@ -14,16 +14,16 @@ const LoginForm = ({ onLoginSuccess, onSwitchToRegister }) => {
 
     try {
       const response = await taskService.login({ username, password });
-      
+
       // Store token and user data
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
-      
+
       onLoginSuccess(response.user, response.token);
     } catch (error) {
       setError(error.message || "Login failed");
     }
-    
+
     setLoading(false);
   };
 

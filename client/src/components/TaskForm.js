@@ -23,7 +23,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       alert("Please enter a title");
       return;
@@ -33,7 +33,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
       title: title.trim(),
       description: description.trim(),
       status,
-      type
+      type,
     });
   };
 
@@ -41,7 +41,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
     <div className="modal">
       <div className="modal-content">
         <h3>{task ? "Edit Task" : "Add New Task"}</h3>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Title:</label>
@@ -66,10 +66,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
 
           <div className="form-group">
             <label>Type:</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
+            <select value={type} onChange={(e) => setType(e.target.value)}>
               <option value="Task">Task</option>
               <option value="Incident">Incident</option>
               <option value="Bug">Bug</option>
@@ -80,10 +77,7 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
 
           <div className="form-group">
             <label>Status:</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="Pending">Pending</option>
               <option value="In Progress">In Progress</option>
               <option value="Complete">Complete</option>
@@ -94,7 +88,11 @@ const TaskForm = ({ task, onSubmit, onCancel }) => {
             <button type="submit" className="btn btn-primary">
               {task ? "Update Task" : "Create Task"}
             </button>
-            <button type="button" onClick={onCancel} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="btn btn-secondary"
+            >
               Cancel
             </button>
           </div>

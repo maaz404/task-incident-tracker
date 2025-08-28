@@ -4,11 +4,16 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
   // Simple function to get type color
   const getTypeColor = (type) => {
     switch (type) {
-      case "Incident": return "#dc3545";
-      case "Bug": return "#fd7e14";
-      case "Feature": return "#20c997";
-      case "Maintenance": return "#6f42c1";
-      default: return "#007bff"; // Task
+      case "Incident":
+        return "#dc3545";
+      case "Bug":
+        return "#fd7e14";
+      case "Feature":
+        return "#20c997";
+      case "Maintenance":
+        return "#6f42c1";
+      default:
+        return "#007bff"; // Task
     }
   };
 
@@ -24,15 +29,15 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
       <div className="task-content">
         <h4>{task.title}</h4>
         {task.description && <p>{task.description}</p>}
-        
+
         <div className="task-badges">
-          <span 
+          <span
             className="type-badge"
-            style={{ backgroundColor: getTypeColor(task.type || 'Task') }}
+            style={{ backgroundColor: getTypeColor(task.type || "Task") }}
           >
-            {task.type || 'Task'}
+            {task.type || "Task"}
           </span>
-          <span 
+          <span
             className="status-badge"
             style={{ backgroundColor: getStatusColor(task.status) }}
           >
@@ -40,18 +45,12 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
           </span>
         </div>
       </div>
-      
+
       <div className="task-actions">
-        <button 
-          onClick={() => onEdit(task)} 
-          className="btn btn-edit"
-        >
+        <button onClick={() => onEdit(task)} className="btn btn-edit">
           Edit
         </button>
-        <button 
-          onClick={() => onDelete(task._id)} 
-          className="btn btn-delete"
-        >
+        <button onClick={() => onDelete(task._id)} className="btn btn-delete">
           Delete
         </button>
       </div>
